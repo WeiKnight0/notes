@@ -16,9 +16,7 @@ import yaml from 'highlight.js/lib/languages/yaml';
 import { renderMarkdown } from './render-markdown.mjs';
 
 const SITE_BASE_PATH = import.meta.env.SITE_BASE_PATH;
-const MAIN_SITE_URL = import.meta.env.MAIN_SITE_URL;
 const siteHref = (path) => `${SITE_BASE_PATH}${path.replace(/^\//, '')}`;
-const mainHref = (path) => new URL(path.replace(/^\//, ''), MAIN_SITE_URL).href;
 const FRONT_MATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const CODE_LANGUAGE_LABELS = {
   asm: 'Assembly',
@@ -99,12 +97,14 @@ function initializeFooter() {
 
 const SHELL_TEXT = {
   en: {
-    nav: { home: 'Home', projects: 'Projects', notes: 'Notes', others: 'Others', ocs: 'OCs', worldbuilding: 'Worldbuilding', menu: 'Menu' },
-    footer: { tagline: 'A personal archive for projects, notes and fictional worlds.', about: 'About this site', privacy: 'Privacy' },
+    nav: { index: 'Index', templates: 'Templates', personal: 'Personal site ↗' },
+    footer: { index: 'Notes index', templates: 'Algorithm templates' },
+    parent: 'Back to parent',
   },
   'zh-cn': {
-    nav: { home: '首页', projects: '项目', notes: '笔记', others: '其他', ocs: '原创角色', worldbuilding: '世界观', menu: '菜单' },
-    footer: { tagline: '记录项目、笔记与幻想世界的个人档案。', about: '关于本站', privacy: '隐私' },
+    nav: { index: '目录', templates: '算法模板', personal: '个人主页 ↗' },
+    footer: { index: '笔记目录', templates: '算法模板' },
+    parent: '返回上级',
   },
 };
 
@@ -117,11 +117,9 @@ function applyShellLocale(locale) {
   document.querySelectorAll('[data-footer-i18n]').forEach((item) => {
     item.textContent = text.footer[item.dataset.footerI18n];
   });
-  document.querySelectorAll('[data-localized-path]').forEach((link) => {
-    const path = link.dataset.localizedPath;
-    link.href = mainHref(locale === 'zh-cn' && /^\/(about|worldbuilding|projects)\/$/.test(path)
-      ? `${path}zh-cn/` : path);
-  });
+  const parent = element('[data-notes-back]');
+  parent.title = text.parent;
+  parent.querySelector('.outline-parent-label').textContent = text.parent;
   document.querySelectorAll('[data-language-current]').forEach((item) => {
     item.textContent = locale === 'zh-cn' ? '简体中文' : 'English';
   });
@@ -287,7 +285,7 @@ async function copyCodeText(text) {
 }
 
 function renderMetadata(note, path) {
-  document.title = `${note.title} | Notes | My Homepage`;
+  document.title = `${note.title} | WeiKnight Notes`;
   element('#note-title').textContent = note.title;
   element('#note-date').dateTime = new Date(note.date).toISOString();
   element('#note-date').textContent = new Intl.DateTimeFormat(
@@ -303,10 +301,7 @@ function renderMetadata(note, path) {
   }));
   document.querySelectorAll('[data-notes-back]').forEach((link) => {
     link.href = noteParent(path);
-    const rootNote = /^(?:index\.(?:md|mdx))$/i.test(path);
-    link.hidden = false;
-    link.title = rootNote ? 'Back to Home' : 'Back to parent';
-    link.querySelector('.outline-parent-label').textContent = rootNote ? 'Back to Home' : 'Back to parent';
+    link.hidden = /^(?:index\.(?:md|mdx))$/i.test(path);
   });
 }
 
@@ -349,6 +344,10 @@ function initializeOutline(page) {
     outline.classList.add('parent-only');
     outline.hidden = false;
   };
+  if (element('[data-notes-back]').hidden) {
+    outline.hidden = true;
+    return;
+  }
   if (page === 'index') {
     showParentOnly();
     return;
@@ -472,7 +471,7 @@ function initializeTheme() {
       const action = dark ? 'Switch to light theme' : 'Switch to dark theme';
       button.setAttribute('aria-label', action);
       button.title = action;
-      button.querySelector('[data-theme-icon]').textContent = dark ? '☀' : '☾';
+      button.querySelector('[data-theme-icon]').setAttribute('href', iconHref(dark ? 'sun' : 'moon'));
       const label = button.querySelector('[data-theme-label]');
       if (label) label.textContent = dark ? 'Light theme' : 'Dark theme';
     });
@@ -539,7 +538,7 @@ async function main() {
 
 function showNoteError(error) {
   console.error('Cannot display note', error);
-  document.title = 'Note unavailable | Notes | WeiKnight';
+  document.title = 'Note unavailable | WeiKnight Notes';
   element('#note-title').textContent = 'Unable to display this note / 暂时无法显示笔记';
   element('.chapter-meta').hidden = true;
   element('#note-outline').hidden = true;

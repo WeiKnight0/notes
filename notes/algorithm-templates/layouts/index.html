@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>算法模板速查 | Notes | My Homepage</title>
+    <title>算法模板速查 | WeiKnight Notes</title>
     <meta name="description" content="面向 LeetCode 和面试刷题的 C++ 算法模板站。" />
     <link rel="icon" href="{{SITE_BASE_PATH}}favicon.ico" />
     <script src="assets/color-theme.js"></script>
@@ -11,12 +11,17 @@
   </head>
   <body data-page="index" data-site-root="./">
     <header class="site-header">
-      <a class="brand" href="{{SITE_BASE_PATH}}">Notes</a>
-      <nav class="top-nav" aria-label="页面导航">
-        <a href="{{SITE_BASE_PATH}}">Notes 首页</a>
-        <a href="{{SITE_BASE_PATH}}Data-Structures-and-Algorithms/">DSA 笔记</a>
-        <a id="download-page" class="download-button" href="#" role="button">下载网页压缩包</a>
-      </nav>
+      <div class="header-inner">
+        <a class="brand" href="{{SITE_BASE_PATH}}"><span class="brand-mark" aria-hidden="true">N.</span><span>WeiKnight Notes</span></a>
+        <nav class="top-nav" aria-label="Notes navigation">
+          <a href="{{SITE_BASE_PATH}}">目录</a>
+          <a href="{{SITE_BASE_PATH}}algorithm-templates/" aria-current="page">算法模板</a>
+        </nav>
+        <div class="header-actions">
+          <a class="main-site-link" href="{{MAIN_SITE_URL}}" target="_blank" rel="noopener noreferrer">个人主页 ↗</a>
+          <button class="theme-toggle" type="button" aria-label="切换颜色主题" title="切换颜色主题"><span aria-hidden="true">☼</span></button>
+        </div>
+      </div>
     </header>
 
     <main class="page-shell">
@@ -30,7 +35,10 @@
             <span>搜索</span>
             <input id="template-search" type="search" placeholder="滑动窗口、DSU、LIS、Hot100 3..." autocomplete="off" />
           </label>
-          <button id="reset-filters" class="ghost-button" type="button">全部模板</button>
+          <div class="hero-commands">
+            <button id="reset-filters" class="ghost-button" type="button">全部模板</button>
+            <a id="download-page" class="download-button" href="#" role="button">下载网页压缩包</a>
+          </div>
         </div>
       </section>
 

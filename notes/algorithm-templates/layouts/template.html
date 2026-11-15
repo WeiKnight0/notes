@@ -3,23 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{TITLE}} | 算法模板速查</title>
+    <title>{{TITLE}} | WeiKnight Notes</title>
     <link rel="icon" href="{{SITE_BASE_PATH}}favicon.ico" />
     <script src="../assets/color-theme.js"></script>
     <link rel="stylesheet" href="../assets/styles.css" />
   </head>
   <body data-page="template" data-site-root="../">
     <header class="site-header">
-      <a class="brand" href="../index.html">算法模板速查</a>
-      <nav class="top-nav">
-        <a href="../index.html">返回首页</a>
-        <a id="download-page" class="download-button" href="#" role="button">下载网页压缩包</a>
-      </nav>
+      <div class="header-inner">
+        <a class="brand" href="{{SITE_BASE_PATH}}"><span class="brand-mark" aria-hidden="true">N.</span><span>WeiKnight Notes</span></a>
+        <nav class="top-nav" aria-label="Notes navigation">
+          <a href="{{SITE_BASE_PATH}}">目录</a>
+          <a href="{{SITE_BASE_PATH}}algorithm-templates/" aria-current="page">算法模板</a>
+        </nav>
+        <div class="header-actions">
+          <a class="main-site-link" href="{{MAIN_SITE_URL}}" target="_blank" rel="noopener noreferrer">个人主页 ↗</a>
+          <button class="theme-toggle" type="button" aria-label="切换颜色主题" title="切换颜色主题"><span aria-hidden="true">☼</span></button>
+        </div>
+      </div>
     </header>
     <main class="page-shell">
       <article class="template-page">
         <p class="eyebrow">{{CATEGORY}}</p>
         <h1>{{HEADING}}</h1>
+        <div class="template-commands">
+          <a href="{{SITE_BASE_PATH}}algorithm-templates/">← 返回模板列表</a>
+          <a id="download-page" class="download-button" href="#" role="button">下载网页压缩包</a>
+        </div>
         <div class="tag-row">{{TAGS}}</div>
         <section class="code-shell"><textarea class="template-source" readonly spellcheck="false">{{CODE}}</textarea></section>
         {{DETAILS}}

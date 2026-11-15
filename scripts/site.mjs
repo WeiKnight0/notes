@@ -20,9 +20,7 @@ export function publicPath(base, relative = '') {
 
 export function isMainSiteUrl(url, mainSite, notesBase) {
   if (url.origin !== mainSite.origin || url.pathname.startsWith(notesBase)) return false;
-  if (url.pathname === mainSite.pathname) return true;
-  if (!url.pathname.startsWith(mainSite.pathname)) return false;
-  return /^(?:about|privacy|projects|ocs|worldbuilding)\//.test(url.pathname.slice(mainSite.pathname.length));
+  return url.pathname === mainSite.pathname;
 }
 
 export function noteRoute(source) {

@@ -4,6 +4,27 @@
     ? savedTheme
     : matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 
-  document.documentElement.dataset.colorTheme = theme;
-  document.documentElement.style.colorScheme = theme;
+  const applyTheme = (value) => {
+    document.documentElement.dataset.colorTheme = value;
+    document.documentElement.style.colorScheme = value;
+    document.querySelectorAll('.theme-toggle').forEach((button) => {
+      const dark = value === 'dark';
+      const label = dark ? '切换到浅色主题' : '切换到深色主题';
+      button.setAttribute('aria-label', label);
+      button.title = label;
+      button.querySelector('span').textContent = dark ? '☀' : '☾';
+    });
+  };
+
+  applyTheme(theme);
+  document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(theme);
+    document.querySelectorAll('.theme-toggle').forEach((button) => {
+      button.addEventListener('click', () => {
+        const next = document.documentElement.dataset.colorTheme === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('wkn-color-theme', next);
+        applyTheme(next);
+      });
+    });
+  });
 })();

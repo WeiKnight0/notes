@@ -22,16 +22,14 @@ test('public paths preserve base and encode non-ASCII source names', () => {
   assert.equal(publicPath('/notes/', '中文/图 1.png'), '/notes/%E4%B8%AD%E6%96%87/%E5%9B%BE%201.png');
 });
 
-test('only main-site routes are treated as cross-site links', () => {
+test('only the personal-site home is treated as a cross-site link', () => {
   const origin = 'https://weiknight0.github.io';
   const mainSite = new URL(`${origin}/`);
-  for (const route of ['/', '/about/', '/privacy/', '/projects/zh-cn/', '/ocs/', '/worldbuilding/']) {
-    assert.equal(isMainSiteUrl(new URL(route, origin), mainSite, '/notes/'), true, route);
-  }
-  for (const route of ['/notes/', '/notes/CSAPP/', '/broken/', '/projects-broken/']) {
+  assert.equal(isMainSiteUrl(new URL('/', origin), mainSite, '/notes/'), true);
+  for (const route of ['/about/', '/privacy/', '/projects/zh-cn/', '/ocs/', '/worldbuilding/', '/notes/', '/notes/CSAPP/', '/broken/']) {
     assert.equal(isMainSiteUrl(new URL(route, origin), mainSite, '/notes/'), false, route);
   }
   const projectMain = new URL(`${origin}/wkn-personal-site/`);
-  assert.equal(isMainSiteUrl(new URL(`${origin}/wkn-personal-site/projects/`), projectMain, '/notes/'), true);
-  assert.equal(isMainSiteUrl(new URL(`${origin}/wkn-personal-site/broken/`), projectMain, '/notes/'), false);
+  assert.equal(isMainSiteUrl(new URL(`${origin}/wkn-personal-site/`), projectMain, '/notes/'), true);
+  assert.equal(isMainSiteUrl(new URL(`${origin}/wkn-personal-site/projects/`), projectMain, '/notes/'), false);
 });

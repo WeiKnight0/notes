@@ -65,7 +65,7 @@ for (const note of notes) {
   const sourceUrl = publicPath(base, `_sources/${note.source}`);
   const head = `<meta name="note-source" content="${escapeHtml(sourceUrl)}">\n`
     + `<meta name="note-path" content="${escapeHtml(note.source)}">\n`;
-  const html = reader.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(note.title)} | Notes | My Homepage</title>`)
+  const html = reader.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(note.title)} | WeiKnight Notes</title>`)
     .replace('</head>', `${head}</head>`);
   const destination = path.join(output, note.route, 'index.html');
   await fs.mkdir(path.dirname(destination), { recursive: true });

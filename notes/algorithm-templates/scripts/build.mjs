@@ -17,6 +17,11 @@ if (!baseInput.startsWith('/') || baseInput.startsWith('//') || /[?#\\]/.test(ba
   throw new Error('SITE_BASE_PATH must be / or a root-relative path such as /repo/');
 }
 const siteBasePath = `${baseInput.replace(/\/+$/, '')}/`;
+const mainSiteUrl = new URL(process.env.MAIN_SITE_URL || 'https://weiknight0.github.io/');
+if (!['https:', 'http:'].includes(mainSiteUrl.protocol) || mainSiteUrl.search || mainSiteUrl.hash) {
+  throw new Error('MAIN_SITE_URL must be an HTTP(S) URL with no query or fragment');
+}
+if (!mainSiteUrl.pathname.endsWith('/')) mainSiteUrl.pathname += '/';
 
 const escapeHtml = (value) => String(value)
   .replaceAll('&', '&amp;')
@@ -87,6 +92,7 @@ const build = async () => {
   const indexLayout = await fs.readFile(path.join(root, 'layouts/index.html'), 'utf8');
   await fs.writeFile(path.join(outputDirectory, 'index.html'), renderLayout(indexLayout, {
     SITE_BASE_PATH: escapeHtml(siteBasePath),
+    MAIN_SITE_URL: escapeHtml(mainSiteUrl.href),
   }));
   await Promise.all(assetFiles.map((filename) => fs.copyFile(
     path.join(root, 'assets', filename),
@@ -96,6 +102,7 @@ const build = async () => {
     path.join(outputDirectory, template.path),
     renderLayout(templateLayout, {
       SITE_BASE_PATH: escapeHtml(siteBasePath),
+      MAIN_SITE_URL: escapeHtml(mainSiteUrl.href),
       TITLE: escapeHtml(template.title),
       CATEGORY: escapeHtml(template.category),
       HEADING: escapeHtml(template.title),
