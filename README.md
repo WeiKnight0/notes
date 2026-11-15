@@ -27,7 +27,7 @@ npm run preview
 
 ## GitHub Pages
 
-将本仓库作为名为 `notes` 的 GitHub 项目仓库，并在 **Settings → Pages → Build and deployment → Source** 中选择 **GitHub Actions**。`.github/workflows/pages.yml` 在推送到 `main` 后构建、验证并部署；Pull Request 只运行检查。工作流从 Pages 设置读取域名与部署路径。
+将本仓库作为名为 `notes` 的 GitHub 项目仓库，并在 **Settings → Pages → Build and deployment → Source** 中选择 **GitHub Actions**。`.github/workflows/pages.yml` 仅在推送到 `main` 或 `dev` 时检查、构建和验证；只有 `main` 上传产物并部署。其他分支和 Pull Request 不触发该工作流。工作流从 Pages 设置读取域名与部署路径。
 
 `SITE_URL` 指定 Pages 域名，`SITE_BASE_PATH` 指定仓库部署前缀（本地默认 `/notes/`），`MAIN_SITE_URL` 指定返回个人主页的地址（本地与工作流默认 `https://weiknight0.github.io/`）。如果主站迁移到其他域名或路径，需要同步更新工作流中的 `MAIN_SITE_URL`；如需本地测试其他配置，可以通过环境变量传入。
 
