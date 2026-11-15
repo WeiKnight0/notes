@@ -1,0 +1,25 @@
+{
+  "name": "weiknight-notes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "notes/reader",
+    "notes/algorithm-templates"
+  ],
+  "scripts": {
+    "dev": "npm run build && npm run preview",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/preview.mjs",
+    "check": "npm test",
+    "test": "node --test scripts/*.test.mjs && npm test --workspace notes/reader",
+    "verify": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "parse5": "^7.3.0",
+    "yaml": "^2.7.1"
+  }
+}
