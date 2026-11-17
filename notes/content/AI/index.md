@@ -7,7 +7,7 @@ page: index
 
 ## 课程笔记
 
-- [CS224N Spring 2024：自然语言处理与深度学习](courses/cs224n-spring2024/index.md)
+- [CS224N Spring 2024：自然语言处理与深度学习](../CS224N/index.md)
 
 ## 数学与计算基础
 

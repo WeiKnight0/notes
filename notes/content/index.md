@@ -16,6 +16,7 @@ Currently available subjects:
 - [CSAPP 深入理解计算机系统](./CSAPP/index.md)
 - [C Language C语言](./C-Language/index.md)
 - [AI 人工智能](./AI/index.md)
+- [CS224N Spring 2024 自然语言处理与深度学习](./CS224N/index.md)
 - [Development Environment 开发环境](./Development-Environment/index.md)
 
 Also, you can check out my GitHub repositories for more study materials:

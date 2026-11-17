@@ -5,7 +5,7 @@ lang: zh-cn
 page: index
 ---
 
-- [CS224N Spring 2024 课程笔记](../../courses/cs224n-spring2024/index.md)
+- [CS224N Spring 2024 课程笔记](../../../CS224N/index.md)
 - [Tokenization：文本、子词与 Token ID](tokenization.md)
 - [语言建模：下一个 Token 与困惑度](language-modeling.md)
 - [BERT 与 GPT：双向编码和因果生成](bert-and-gpt.md)
