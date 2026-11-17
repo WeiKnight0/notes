@@ -4,11 +4,7 @@ date: 2026-11-16
 lang: zh-cn
 ---
 
-> 整理状态：全讲可读取技术正文与A2对应知识已整理。不做OCR；无法识读的图像细节保留限制，不猜测。
-
 ## 1. 句法结构的两种视角
-
-来源：PDF P3–6。页码均指PDF物理页，课件印刷页码不连续，不能混用。
 
 **成分结构（Constituency / Phrase Structure）**把词组织为嵌套的短语。例如：
 
@@ -26,23 +22,17 @@ lang: zh-cn
 
 ### 2.1 附着与作用域
 
-来源：P7–13。
-
 **介词短语附着歧义（Prepositional Phrase Attachment Ambiguity）**：同一介词短语可以修饰不同成分。`Scientists count whales from space` 中，`from space`可以描述科学家从太空进行计数的方式，也可能被结构错误地连到`whales`上，产生不同解释。
 
 ![Scientists count whales from space的介词短语附着歧义](figures/lecture04/pp-ambiguity.png)
 
-来源：Lecture 4，PDF P8。P7、P11–13的部分示例为图像且文本不足，不尝试OCR或补造图中句子。
-
 本讲还区分：
 
-- **并列作用域歧义（Coordination Scope Ambiguity）**：修饰语作用于单个并列项，还是整个并列结构。P10使用`Shuttle veteran and longtime NASA executive Fred Gregory appointed to board`展示结构解释问题。
+- **并列作用域歧义（Coordination Scope Ambiguity）**：修饰语作用于单个并列项，还是整个并列结构。使用`Shuttle veteran and longtime NASA executive Fred Gregory appointed to board`展示结构解释问题。
 - **形容词／副词修饰歧义（Adjectival / Adverbial Modifier Ambiguity）**：同一修饰语可能作用于不同词或不同大小的成分。
 - **动词短语附着歧义（Verb Phrase Attachment Ambiguity）**：动词性短语附着于哪个谓词，会改变动作之间的关系。
 
 ### 2.2 候选结构数量增长
-
-来源：P9。
 
 多个介词短语及其他可附着成分会使候选树数量迅速增长。课件用**Catalan数（卡特兰数）**说明许多树形组合问题的增长：
 
@@ -54,13 +44,9 @@ $$
 
 ## 3. 依存路径与语义解释
 
-来源：P14。
-
 依存结构可以把相隔多个词、甚至跨过嵌套从句的参与者联系起来。课件以蛋白质相互作用抽取为例，句子包含`KaiC rhythmically interacts with SasA`，并通过并列结构连接`KaiA`、`KaiB`。
 
 ![通过依存路径抽取蛋白质之间的相互作用](figures/lecture04/protein-dependency-paths.png)
-
-来源：Lecture 4，PDF P14。
 
 `KaiC`经`nsubj`关系与`interacts`连接，再经`nmod:with`到达`SasA`；结合并列边，还能联系`KaiA`和`KaiB`。路径比简单检查两个实体之间的原始连续词串更明确地表达“谁与谁发生作用”。
 
@@ -69,8 +55,6 @@ $$
 ## 4. 依存语法与树约束
 
 ### 4.1 中心词、从属词和边标签
-
-来源：P15–20。
 
 **依存语法（Dependency Grammar）**把句法结构看成词汇项之间的二元非对称关系。依存弧（Dependency Arc）连接：
 
@@ -87,17 +71,15 @@ $$
 
 ![带语法关系标签的中心词与从属词依存树](figures/lecture04/dependency-tree.png)
 
-来源：Lecture 4，PDF P17；P15–17分别引入边、标签及树的解释。图中`submitted`支配`Bills`、`were`等词，展示关系并不要求依赖词在句中紧邻中心词。
+图中`submitted`支配`Bills`、`were`等词，展示关系并不要求依赖词在句中紧邻中心词。
 
 加入人工节点 **ROOT** 后，每个真实词恰好依赖一个其他节点，包括句子的主中心词依赖ROOT。通常还要求只有一个真实词直接依赖ROOT。
 
 依存树应连通（Connected）、无环（Acyclic）、有单一根（Single-rooted）。给每个词独立选择最高分中心词，并不能自动保证这些全局条件，例如可能产生$A\to B$且$B\to A$的环。
 
-P18介绍依存思想的历史及对自由语序、丰富屈折语言的适用性；P19为历史手稿图片，无需为学习解析算法转录年代和图片细节。
+介绍依存思想的历史及对自由语序、丰富屈折语言的适用性；为历史手稿图片，无需为学习解析算法转录年代和图片细节。
 
 ### 4.2 为什么需要树库
-
-来源：P21–22。
 
 **树库（Treebank）**是带句法结构标注的语料。课件提到Penn Treebank和Universal Dependencies等资源。相比手写语法规则，初期人工标注似乎慢，但有多方面价值：
 
@@ -109,8 +91,6 @@ P18介绍依存思想的历史及对自由语序、丰富屈折语言的适用�
 **Universal Dependencies（通用依存，UD）**提供跨语言依存标注框架。本地作业注明使用UDv1；课件中的标签也并非每处都与最新版本一致，因此不跨版本强行统一。
 
 ### 4.3 判断依存关系的线索
-
-来源：P23。
 
 | 线索 | 含义 | 不能误解为 |
 | --- | --- | --- |
@@ -125,19 +105,13 @@ P18介绍依存思想的历史及对自由语序、丰富屈折语言的适用�
 
 ### 5.1 什么是投射树
 
-来源：P24–25。
-
 将词按线性顺序排在一行，依存弧都画在上方，若没有交叉弧，称为**投射分析（Projective Parse）**。将CFG树的每个成分选定一个子成分作为中心词并转换成依存结构，会得到投射结构。
 
 但语言存在位移成分（Displaced Constituents），有些依存必须非投射（Non-projective）才能正确表达关系。课件例子为`Who did Bill buy the coffee from yesterday?`。不能为维持一张无交叉图就随意改变真实修饰关系。
 
 ![投射性与位移成分的依存结构示例](figures/lecture04/projectivity.png)
 
-来源：Lecture 4，PDF P25。
-
 ### 5.2 方法分类
-
-来源：P26。
 
 | 解析方法 | 核心机制 | 课件列举 |
 | --- | --- | --- |
@@ -151,8 +125,6 @@ P18介绍依存思想的历史及对自由语序、丰富屈折语言的适用�
 ## 6. Arc-standard转移式依存分析
 
 ### 6.1 状态与初始化
-
-来源：P27–28；同时对照A2 Part 3，PDF P5–6。
 
 解析状态写成$(\sigma,\beta,A)$：
 
@@ -179,8 +151,6 @@ SHIFT要求缓冲区非空；弧动作至少需要两个栈元素，ROOT不能�
 
 ### 6.2 `I ate fish`完整过程
 
-来源：P29–30。
-
 | 步骤 | 动作 | 动作后的栈 | 动作后的缓冲区 | 新依存弧 |
 | --- | --- | --- | --- | --- |
 | 0 | 初始 | `[ROOT]` | `[I, ate, fish]` | — |
@@ -193,11 +163,9 @@ SHIFT要求缓冲区非空；弧动作至少需要两个栈元素，ROOT不能�
 
 ![Arc-standard对I ate fish的转移示例](figures/lecture04/arc-standard-example.png)
 
-来源：Lecture 4，PDF P30。示例手工给出正确动作；真正的解析器必须从当前状态预测动作，不能把演示步骤当成模型已经知道答案。
+示例手工给出正确动作；真正的解析器必须从当前状态预测动作，不能把演示步骤当成模型已经知道答案。
 
 ### 6.3 动作数与批量解析
-
-来源：A2 Part 3(b–d)，PDF P6，作业补充。
 
 $n$个真实词各SHIFT一次，共$n$步；每个真实词最终作为从属词被弧动作移出栈，共$n$步，因此总计$2n$步。ROOT初始就在栈中，不需要SHIFT，也不会被移除。
 
@@ -218,8 +186,6 @@ while unfinished非空：
 
 ## 7. 从当前状态预测下一步动作
 
-来源：P31–32。
-
 MaltParser使用**判别式分类器（Discriminative Classifier）**根据当前状态选择合法动作。无标签版本至多3种动作；若弧关系标签集合为$R$，则有SHIFT，以及每种标签对应的LEFT-ARC与RIGHT-ARC，最多$2|R|+1$个输出类别。
 
 输入特征可以包括栈顶词及其词性（Part of Speech, POS）、缓冲区首词及其词性等。传统模板组合1–3个状态元素，形成维度约$10^6$–$10^7$的二元稀疏指示特征（Sparse Indicator Features）。
@@ -234,8 +200,6 @@ MaltParser使用**判别式分类器（Discriminative Classifier）**根据当�
 
 ### 8.1 UAS与LAS
 
-来源：P33。
-
 设评估范围内有$N$个真实词，$h_i,r_i$分别为真实中心词索引与关系标签，$\hat h_i,\hat r_i$为预测结果：
 
 $$
@@ -249,15 +213,11 @@ $$
 
 **无标签附着分数（Unlabeled Attachment Score, UAS）**只要求中心词正确；**有标签附着分数（Labeled Attachment Score, LAS）**同时要求中心词和关系标签正确。标签碰巧正确而中心词错误，不计为LAS正确；同一评估范围下$\operatorname{LAS}\le\operatorname{UAS}$。
 
-P33的`She saw the video lecture`示例为UAS $4/5=80\%$、LAS $2/5=40\%$。人工ROOT节点不是需要预测其中心词的真实词；实际报告还需确认是否排除标点及使用何种标注版本，不把不同设置的数值直接等同。
+`She saw the video lecture`示例为UAS $4/5=80\%$、LAS $2/5=40\%$。人工ROOT节点不是需要预测其中心词的真实词；实际报告还需确认是否排除标点及使用何种标注版本，不把不同设置的数值直接等同。
 
 ![同一句子的UAS与LAS计算示例](figures/lecture04/attachment-evaluation.png)
 
-来源：Lecture 4，PDF P33。
-
 ### 8.2 基本arc-standard为何不能覆盖全部语言结构
-
-来源：P34。
 
 本讲基本arc-standard系统只生成投射依存树。课件列出处理非投射的方向：
 
@@ -273,8 +233,6 @@ P33的`She saw the video lecture`示例为UAS $4/5=80\%$、LAS $2/5=40\%$。人�
 
 ### 9.1 稠密表示替代稀疏指示特征
 
-来源：P35–38。
-
 传统指示特征存在稀疏（Sparse）、覆盖不完整（Incomplete）以及计算昂贵（Expensive to Compute）的问题。课件引用的系统中，特征计算消耗超过95%的解析时间；这是所述传统配置的测量，不是所有解析器的固定比例。
 
 神经方法学习稠密紧凑表示，配置向量维度约为千量级。除了词向量，POS标签和已预测的依存关系标签也可使用嵌入表示。课件的直觉例子是NN与NNS、amod与nummod等离散类别间可能存在可学习的共性；不是预先规定它们必须具有固定距离。
@@ -289,11 +247,7 @@ $$
 
 ![从栈缓冲区及依存孩子提取配置特征并拼接嵌入](figures/lecture04/configuration-features.png)
 
-来源：Lecture 4，PDF P38。图中各槽位细节无法完全由文本层恢复，保留原图，不编造全部模板清单。
-
 ### 9.2 非线性动作分类器
-
-来源：P39–41。
 
 本讲将配置表示送入前馈网络（Feed-forward Neural Network）：
 
@@ -307,15 +261,11 @@ $$
 
 ![神经依存解析器的嵌入隐藏层与动作Softmax](figures/lecture04/neural-parser.png)
 
-来源：Lecture 4，PDF P40。
-
-课件以固定稀疏特征的线性分类器作对照，突出神经模型的非线性能力。不能将P39对传统方法的概括理解成“所有SVM都只能线性分类”：带非线性核的SVM不属于这里讨论的线性特征打分配置。
+课件以固定稀疏特征的线性分类器作对照，突出神经模型的非线性能力。不能对传统方法的概括理解成“所有SVM都只能线性分类”：带非线性核的SVM不属于这里讨论的线性特征打分配置。
 
 ### 9.3 历史速度与准确率结果
 
-来源：P36、P41–42。
-
-P36为英语Stanford Dependencies解析实验：
+为英语Stanford Dependencies解析实验：
 
 | 方法 | UAS | LAS | 每秒句数 |
 | --- | ---: | ---: | ---: |
@@ -326,7 +276,7 @@ P36为英语Stanford Dependencies解析实验：
 
 该神经转移式模型同时取得很快的解析速度和有竞争力的准确率；UAS并非全表最高，不能把结论写成每项指标全部领先。速度值依赖当时实现与硬件，仅作为课件实验记录。
 
-后续工作采用更大更深网络、调参、束搜索以及对整个决策序列进行全局CRF式推断（Global CRF-style Inference）。P42列出PTB WSJ SD 3.3上的结果：
+后续工作采用更大更深网络、调参、束搜索以及对整个决策序列进行全局CRF式推断（Global CRF-style Inference）。列出PTB WSJ SD 3.3上的结果：
 
 | 方法 | UAS | LAS |
 | --- | ---: | ---: |
@@ -338,8 +288,6 @@ P36为英语Stanford Dependencies解析实验：
 
 ## 10. 图式神经依存解析
 
-来源：P43–45。
-
 **图式解析（Graph-based Parsing）**为每个真实词的每个候选中心词计算分数，再在树约束下寻找整体最优解析。核心形式可概括为：
 
 $$
@@ -350,8 +298,6 @@ $$
 其中$\mathcal T$是满足所选根、无环及其他约束的依存树集合。该式表达课件的“边打分＋全局选树”，不是引入新的高阶评分模型。
 
 ![图式解析对每个词的候选中心词打分再选择依存树](figures/lecture04/graph-parser.png)
-
-来源：Lecture 4，PDF P44。
 
 只知道两个词的孤立词向量往往不够，需要**上下文化词元表示（Contextual Token Representations）**区分句中角色。课件预告后续讲次的神经序列模型；这里不提前展开其结构。
 
@@ -367,8 +313,6 @@ Dozat和Manning（2017）使用**双仿射评分（Biaffine Scoring）**并结�
 转移式模型对动作序列做局部或束搜索决策；图式模型对候选边打分并受整体树约束解码。两者都可以使用神经表示，不能把“神经”与“图式”误认为互斥类别。
 
 ## 11. A2：模型实现与错误分析
-
-来源：A2 Part 3(e–g)，PDF P6–10。本节补充对应技术要求，不转录提交和评分安排。
 
 ### 11.1 行向量版本与批维度
 
@@ -407,15 +351,8 @@ $$
 | 修饰语附着错误，Modifier Attachment Error | 程度等修饰语作用于哪个词 | `I am extremely short`中应为`short → extremely` |
 | 并列附着错误，Coordination Attachment Error | 后一个并列项依赖哪个前项 | `brown rice or garlic naan`中后项中心词`naan`连接前项中心词`rice` |
 
-A2另给四张待诊断依存图，但图中边端点无法从文本层可靠还原，因此不猜测各题的错误边。保留上述明确可读的类型、例子和诊断方法。
+保留上述明确可读的类型、例子和诊断方法。
 
 ### 11.3 为什么加入词性
 
 POS特征概括词的句法角色，对低频词和词汇变化提供共享信号。例如名词与动词通常具有不同的论元和修饰模式。词性不是完整句法分析的替代品，但与词汇嵌入、已有依存结构共同输入时，可帮助分类器判断合法且合理的下一步。
-
-## 来源与范围
-
-- 主课件：`slides/lecture04-dep-parsing.pdf`，45个PDF物理页。课件印刷页码从3跳到6等，本文统一按物理页引用。
-- 作业：`assignments/a2.pdf` Part 3，PDF P5–10。A2 Part 2的Adam与Dropout已在第3讲整理。
-- 本章整理算法与题目知识，不运行或代写完整训练工程，不把未运行的训练目标当成实测成绩。
-- 9张知识图来自相应课件页，无法识读的图像细节按用户要求跳过，不做OCR。
