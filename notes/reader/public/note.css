@@ -422,6 +422,37 @@ body {
     margin-top: 1.25rem;
 }
 
+.chapter-content blockquote {
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid var(--primary-color);
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    background: var(--light-bg);
+    color: var(--text-color);
+    min-width: 0;
+}
+
+.chapter-content blockquote > :first-child {
+    margin-top: 0;
+}
+
+.chapter-content blockquote > :last-child {
+    margin-bottom: 0;
+}
+
+.chapter-content blockquote > * + * {
+    margin-top: 0.85rem;
+}
+
+.chapter-content blockquote li + li {
+    margin-top: 0.4rem;
+}
+
+.chapter-content blockquote li > ol,
+.chapter-content blockquote li > ul {
+    margin-top: 0.4rem;
+}
+
 .chapter-content a {
     color: var(--primary-color);
     text-decoration: none;
