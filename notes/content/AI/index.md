@@ -5,6 +5,10 @@ lang: zh-cn
 page: index
 ---
 
+## 课程笔记
+
+- [CS224N Spring 2024：自然语言处理与深度学习](../CS224N/index.md)
+
 ## 数学与计算基础
 
 ## 机器学习基本原理

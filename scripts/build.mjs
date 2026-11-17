@@ -57,6 +57,7 @@ for (const workspace of ['notes/reader', 'notes/algorithm-templates']) {
 await fs.rm(output, { recursive: true, force: true });
 await fs.mkdir(output, { recursive: true });
 await fs.copyFile(path.join(root, 'favicon.ico'), path.join(output, 'favicon.ico'));
+await fs.copyFile(path.join(root, 'notes-mark.svg'), path.join(output, 'notes-mark.svg'));
 const readerRoot = path.join(root, 'notes/reader/dist');
 await fs.cp(readerRoot, path.join(output, 'notes-reader'), { recursive: true });
 const reader = await fs.readFile(path.join(readerRoot, 'index.html'), 'utf8');

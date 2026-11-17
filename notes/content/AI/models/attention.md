@@ -54,7 +54,7 @@ print(output)
 Mask 在 Softmax 前把禁止位置的分数设为 $-\infty$：
 
 $$
-A_{ij}=\frac{\exp(S_{ij})}{\sum_{k\in\mathcal V_i}\exp(S_{ik})},qquad j\in\mathcal V_i,
+A_{ij}=\frac{\exp(S_{ij})}{\sum_{k\in\mathcal V_i}\exp(S_{ik})},\qquad j\in\mathcal V_i,
 $$
 
 其中 $\mathcal V_i$ 是第 $i$ 个 Query 可以读取的 Key 集合。被屏蔽位置的权重为 0。
@@ -143,7 +143,7 @@ print(cross_output.shape)
 单头只在一个投影空间中计算相似度。多头注意力将表示投影为 $h$ 组，每头宽度通常为 $d_h=d_{\text{model}}/h$：
 
 $$
-\operatorname{head}_i=operatorname{Attention}(QW_i^Q,KW_i^K,VW_i^V),
+\operatorname{head}_i=\operatorname{Attention}(QW_i^Q,KW_i^K,VW_i^V),
 $$
 
 $$
