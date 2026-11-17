@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="250" viewBox="0 0 920 250" role="img" aria-labelledby="title desc">
+  <title id="title">以 banking 为中心、半径为 2 的上下文窗口</title>
+  <desc id="desc">从左到右为 problems、turning、into、banking、crises、as。banking 是中心词，左侧 turning 和 into、右侧 crises 和 as 是上下文词，problems 在窗口之外。</desc>
+  <rect width="920" height="250" rx="16" fill="#f8fafc"/>
+  <g font-family="Arial, 'Microsoft YaHei', sans-serif" text-anchor="middle">
+    <text x="460" y="35" font-size="18" fill="#334155">上下文窗口：左右各取 2 个词</text>
+    <rect x="196" y="65" width="660" height="84" rx="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+    <rect x="460" y="77" width="132" height="60" rx="10" fill="#1d4ed8"/>
+    <g font-size="23" fill="#0f172a">
+      <text x="107" y="115" fill="#64748b">problems</text>
+      <text x="262" y="115">turning</text>
+      <text x="394" y="115">into</text>
+      <text x="526" y="115" fill="#ffffff" font-weight="700">banking</text>
+      <text x="658" y="115">crises</text>
+      <text x="790" y="115">as</text>
+    </g>
+    <g fill="none" stroke-width="2">
+      <path d="M218 160v12h220v-12" stroke="#2563eb"/>
+      <path d="M614 160v12h220v-12" stroke="#2563eb"/>
+      <path d="M526 149v24" stroke="#1d4ed8"/>
+      <path d="M107 137v36" stroke="#94a3b8" stroke-dasharray="4 4"/>
+    </g>
+    <g font-size="17">
+      <text x="107" y="200" fill="#64748b">窗口外</text>
+      <text x="328" y="200" fill="#1d4ed8">左侧上下文</text>
+      <text x="526" y="200" fill="#1d4ed8" font-weight="700">中心词</text>
+      <text x="724" y="200" fill="#1d4ed8">右侧上下文</text>
+    </g>
+    <text x="526" y="230" font-size="14" fill="#475569">蓝色边框内为当前窗口，中心词不计入上下文</text>
+  </g>
+</svg>
