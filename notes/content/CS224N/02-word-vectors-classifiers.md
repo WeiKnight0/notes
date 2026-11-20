@@ -9,10 +9,10 @@ lang: zh-cn
 第一讲用 Skip-gram 学习词向量：给定中心词 $c$，预测窗口中的外围词 $o$，再根据预测误差更新向量。完整 Softmax 的概率为：
 
 $$
-P(o\mid c)=\frac{\exp(u_o^\top v_c)}{\sum_{w\in V}\exp(u_w^\top v_c)}.
+P(o\mid c)=\frac{\exp(\mathbf{u}_o^\top \mathbf{v}_c)}{\sum_{w\in V}\exp(\mathbf{u}_w^\top \mathbf{v}_c)}.
 $$
 
-这里 $V$ 是词表，$v_c\in\mathbb R^d$ 是中心词向量，$u_w\in\mathbb R^d$ 是候选外围词向量。两套向量分别承担输入和输出角色。
+这里 $V$ 是词表，$\mathbf{v}_c\in\mathbb R^d$ 是中心词向量，$\mathbf{u}_w\in\mathbb R^d$ 是候选外围词向量。两套向量分别承担输入和输出角色。
 
 这个方法带来两个接下来的问题：**词表很大时，怎样降低训练成本？学到向量后，怎样判断它有没有用，并把它用于分类？**
 
@@ -43,7 +43,7 @@ $$
 
 一次词对预测的计算过程是：
 
-1. 从输入向量表取出 $v_{\mathrm{eats}}$。
+1. 从输入向量表取出 $\mathbf{v}_{\mathrm{eats}}$。
 2. 将它与每个候选输出词的向量做点积，得到整个词表的分数。
 3. 通过 Softmax 得到 $P(w\mid\mathrm{eats})$。
 4. 根据当前答案计算损失：第一个词对使用 $-\log P(\mathrm{cat}\mid\mathrm{eats})$，第二个使用 $-\log P(\mathrm{fish}\mid\mathrm{eats})$。
@@ -65,26 +65,26 @@ $$
 
 在上面的例子中，一个窗口构成一条样本：输入是 `cat` 和 `fish`，答案是 `eats`。可以把它理解为隐藏中间位置，让模型根据两侧信息填词。
 
-为了清楚区分角色，这里统一将输入词向量记为 $v_w$，将输出候选词向量记为 $u_w$。在 CBOW 中，输入来自上下文，输出候选是中心词；这与前面 Skip-gram 中的中心、外围角色正好相反。
+为了清楚区分角色，这里统一将输入词向量记为 $\mathbf{v}_w$，将输出候选词向量记为 $\mathbf{u}_w$。在 CBOW 中，输入来自上下文，输出候选是中心词；这与前面 Skip-gram 中的中心、外围角色正好相反。
 
 采用平均汇总时，计算过程是：
 
-1. 查出两个输入词向量 $v_{\mathrm{cat}}$ 和 $v_{\mathrm{fish}}$。
-2. 计算上下文表示 $h=(v_{\mathrm{cat}}+v_{\mathrm{fish}})/2$。
-3. 对每个候选中心词 $w$ 计算分数 $u_w^\top h$，再经过 Softmax。
+1. 查出两个输入词向量 $\mathbf{v}_{\mathrm{cat}}$ 和 $\mathbf{v}_{\mathrm{fish}}$。
+2. 计算上下文表示 $\mathbf{h}=(\mathbf{v}_{\mathrm{cat}}+\mathbf{v}_{\mathrm{fish}})/2$。
+3. 对每个候选中心词 $w$ 计算分数 $\mathbf{u}_w^\top \mathbf{h}$，再经过 Softmax。
 4. 用真实中心词 `eats` 的概率计算损失。
 
 对应公式为：
 
 $$
 P(w\mid\{\mathrm{cat},\mathrm{fish}\})
-=\frac{\exp(u_w^\top h)}{\sum_{a\in V}\exp(u_a^\top h)},\qquad
+=\frac{\exp(\mathbf{u}_w^\top \mathbf{h})}{\sum_{a\in V}\exp(\mathbf{u}_a^\top \mathbf{h})},\qquad
 J_{\mathrm{CBOW}}=-\log P(\mathrm{eats}\mid\{\mathrm{cat},\mathrm{fish}\}).
 $$
 
-也可以使用求和汇总；这里固定采用平均，明确本例的计算规则。平均后的 $h$ 仍为 $d$ 维，不是将两个向量拼成 $2d$ 维。损失的梯度会经过平均操作传到两个输入词向量，因此它们会一起调整，以便这个上下文更容易预测出 `eats`。
+也可以使用求和汇总；这里固定采用平均，明确本例的计算规则。平均后的 $\mathbf{h}$ 仍为 $d$ 维，不是将两个向量拼成 $2d$ 维。损失的梯度会经过平均操作传到两个输入词向量，因此它们会一起调整，以便这个上下文更容易预测出 `eats`。
 
-“词袋”描述的正是这种汇总方式：交换 `cat` 和 `fish` 的位置，$h$ 不变，预测也不变。因此，基本 CBOW 能利用窗口里有哪些词，却无法凭这个输入区分它们的排列顺序。这里使用集合式记号简写上下文，但重复词在实际平均中仍按出现次数计入。
+“词袋”描述的正是这种汇总方式：交换 `cat` 和 `fish` 的位置，$\mathbf{h}$ 不变，预测也不变。因此，基本 CBOW 能利用窗口里有哪些词，却无法凭这个输入区分它们的排列顺序。这里使用集合式记号简写上下文，但重复词在实际平均中仍按出现次数计入。
 
 #### 两种模型的比较
 
@@ -102,17 +102,17 @@ $$
 
 ### 1.2 上下文兼容性不等于同义关系
 
-$u_{\text{fish}}^\top v_{\text{eats}}$ 衡量 `fish` 作为 `eats` 的上下文词是否匹配；它不表示这两个词互为同义词。
+$\mathbf{u}_{\text{fish}}^\top \mathbf{v}_{\text{eats}}$ 衡量 `fish` 作为 `eats` 的上下文词是否匹配；它不表示这两个词互为同义词。
 
-训练后比较 $v_{\text{cat}}$ 与 $v_{\text{dog}}$，是在观察两个输入词是否形成了相近的表示。它们可能因为经常出现在相似环境中而接近，即使两者并不经常紧挨着出现。
+训练后比较 $\mathbf{v}_{\text{cat}}$ 与 $\mathbf{v}_{\text{dog}}$，是在观察两个输入词是否形成了相近的表示。它们可能因为经常出现在相似环境中而接近，即使两者并不经常紧挨着出现。
 
 使用词向量时，可以选择中心向量、外围向量，或两者的和、平均值。这是表示的选择，需要在同一次比较中保持一致。
 
 ## 2. 负采样：不必每次计算整个词表
 
-### 2.1 完整 Softmax 的成本在哪里
+### 2.1 完整 Softmax 的计算成本
 
-对于一个真实词对 $(c,o)$，完整 Softmax 需要计算所有 $u_w^\top v_c$，才能得到分母。如果词表有一百万个词，一条训练样本就需要对一百万个候选评分。
+对于一个真实词对 $(c,o)$，完整 Softmax 需要计算所有 $\mathbf{u}_w^\top \mathbf{v}_c$，才能得到分母。如果词表有一百万个词，一条训练样本就需要对一百万个候选评分。
 
 每个点积的成本与向量维度 $d$ 成正比，因此单词对的直接计算成本约为 $O(|V|d)$。分母还使所有外围向量通常都有非零梯度。
 
@@ -156,16 +156,16 @@ $u_{\text{fish}}^\top v_{\text{eats}}$ 衡量 `fish` 作为 `eats` 的上下文�
 
 负样本的标签只记录**这次样本由随机抽样产生**，不表示该词对在任何文本中都不可能出现。随机抽样甚至可能碰巧抽中真实上下文词；它仍按这次抽样的来源标为 0。同一个词也可能被重复抽到，重复出现需要重复计入损失和梯度。
 
-### 2.3 模型怎样判断一个词对更像正样本还是负样本
+### 2.3 词对的匹配分数与二分类概率
 
 模型根据两个词的向量，计算它们组成正样本的概率。计算分为两步：先用点积得到匹配分数，再用 Sigmoid 将分数转换为概率。
 
 #### 第一步：取出两个词的向量，计算匹配分数
 
-先看正样本 `banking` 配 `crises`。从中心词向量表取出 $v_{\mathrm{banking}}$，从外围词向量表取出 $u_{\mathrm{crises}}$，计算点积：
+先看正样本 `banking` 配 `crises`。从中心词向量表取出 $\mathbf{v}_{\mathrm{banking}}$，从外围词向量表取出 $\mathbf{u}_{\mathrm{crises}}$，计算点积：
 
 $$
-s=u_{\mathrm{crises}}^\top v_{\mathrm{banking}}.
+s=\mathbf{u}_{\mathrm{crises}}^\top \mathbf{v}_{\mathrm{banking}}.
 $$
 
 $s$ 是这个词对的**匹配分数**。分数越大，模型越倾向于把它判为正样本。但是点积可以为任意实数，例如 $-2$、$0$ 或 $2$，还不能直接当作概率。
@@ -201,7 +201,7 @@ $$
 于是所有记录都使用同一个计算规则：
 
 $$
-\boxed{s=u_w^\top v_c,\qquad \hat p=\sigma(s)}.
+\boxed{s=\mathbf{u}_w^\top \mathbf{v}_c,\qquad \hat p=\sigma(s)}.
 $$
 
 这里 $\hat p$ 回答“给定这两个词，这条记录属于正样本的概率是多少”，而不是“给定中心词，下一个外围词恰好是 $w$ 的概率是多少”。对于同一个中心词，不同候选词分别做一次正负分类；它们的 $\hat p$ 不需要在整个词表上加起来等于 1。
@@ -219,13 +219,13 @@ $$
 因此，一个正词对及其 $K$ 个负词的总损失为：
 
 $$
-\boxed{J_{\mathrm{NS}}=-\log\sigma(u_o^\top v_c)
--\sum_{k=1}^{K}\log\sigma(-u_{n_k}^\top v_c)}.
+\boxed{J_{\mathrm{NS}}=-\log\sigma(\mathbf{u}_o^\top \mathbf{v}_c)
+-\sum_{k=1}^{K}\log\sigma(-\mathbf{u}_{n_k}^\top \mathbf{v}_c)}.
 $$
 
 第一项鼓励正词对分数增大，第二项鼓励负词对分数减小。每次只需要对 $K+1$ 个词对评分，计算成本约为 $O((K+1)d)$，不再随整个词表大小线性增长。
 
-### 2.5 梯度为什么只更新少量词向量
+### 2.5 负采样梯度与稀疏更新
 
 Sigmoid 的导数为 $\sigma'(s)=\sigma(s)(1-\sigma(s))$。代入二分类交叉熵，可以得到简单的误差信号：
 
@@ -233,30 +233,30 @@ $$
 \frac{\partial\ell}{\partial s}=\sigma(s)-y.
 $$
 
-记 $s_o=u_o^\top v_c$、$s_k=u_{n_k}^\top v_c$，则：
+记 $s_o=\mathbf{u}_o^\top \mathbf{v}_c$、$s_k=\mathbf{u}_{n_k}^\top \mathbf{v}_c$，则：
 
 $$
-\boxed{\nabla_{v_c}J_{\mathrm{NS}}
-=(\sigma(s_o)-1)u_o+\sum_{k=1}^{K}\sigma(s_k)u_{n_k}}.
+\boxed{\nabla_{\mathbf{v}_c}J_{\mathrm{NS}}
+=(\sigma(s_o)-1)\mathbf{u}_o+\sum_{k=1}^{K}\sigma(s_k)\mathbf{u}_{n_k}}.
 $$
 
-对于正样本中的外围词 $o$，它对应的损失项为 $\ell_o=-\log\sigma(s_o)$。对外围向量 $u_o$ 求导：
+对于正样本中的外围词 $o$，它对应的损失项为 $\ell_o=-\log\sigma(s_o)$。对外围向量 $\mathbf{u}_o$ 求导：
 
 $$
-\nabla_{u_o}\ell_o=(\sigma(s_o)-1)v_c.
+\nabla_{\mathbf{u}_o}\ell_o=(\sigma(s_o)-1)\mathbf{v}_c.
 $$
 
-对于第 $k$ 次抽到的负词 $n_k$，它对应的损失项为 $\ell_k=-\log\sigma(-s_k)$。这里 $k$ 是抽样序号，$u_{n_k}$ 是这个负词的外围向量。由链式法则：
+对于第 $k$ 次抽到的负词 $n_k$，它对应的损失项为 $\ell_k=-\log\sigma(-s_k)$。这里 $k$ 是抽样序号，$\mathbf{u}_{n_k}$ 是这个负词的外围向量。由链式法则：
 
 $$
-\nabla_{u_{n_k}}\ell_k
-=\frac{\partial\ell_k}{\partial s_k}\nabla_{u_{n_k}}(u_{n_k}^\top v_c)
-=\sigma(s_k)v_c.
+\nabla_{\mathbf{u}_{n_k}}\ell_k
+=\frac{\partial\ell_k}{\partial s_k}\nabla_{\mathbf{u}_{n_k}}(\mathbf{u}_{n_k}^\top \mathbf{v}_c)
+=\sigma(s_k)\mathbf{v}_c.
 $$
 
-例如，负词是 `banana` 时，上式求的是这条负样本损失对 $u_{\mathrm{banana}}$ 的梯度。梯度下降会从这个向量中减去 $\alpha\sigma(s_k)v_c$，使它与当前中心向量的点积分数降低。
+例如，负词是 `banana` 时，上式求的是这条负样本损失对 $\mathbf{u}_{\mathrm{banana}}$ 的梯度。梯度下降会从这个向量中减去 $\alpha\sigma(s_k)\mathbf{v}_c$，使它与当前中心向量的点积分数降低。
 
-同一个词可能被重复抽到，但向量表中只保存它的一份向量。因此要把重复样本产生的梯度相加。例如，`banana` 被抽到两次时，两项损失都依赖 $u_{\mathrm{banana}}$，合计梯度为 $2\sigma(u_{\mathrm{banana}}^\top v_c)v_c$。若某个词同时作为正词和负词出现，它的正、负两部分梯度也要相加。
+同一个词可能被重复抽到，但向量表中只保存它的一份向量。因此要把重复样本产生的梯度相加。例如，`banana` 被抽到两次时，两项损失都依赖 $\mathbf{u}_{\mathrm{banana}}$，合计梯度为 $2\sigma(\mathbf{u}_{\mathrm{banana}}^\top \mathbf{v}_c)\mathbf{v}_c$。若某个词同时作为正词和负词出现，它的正、负两部分梯度也要相加。
 
 未参与本次损失的向量梯度为零。这称为**稀疏更新**：只更新当前使用到的词向量，而不是整个词表。
 
@@ -286,7 +286,7 @@ $$
 >    2. 为每个正词对独立地从 $P_n$ 有放回抽取 $K$ 个负词。
 >    3. 对该窗口所有正词对分别计算 $J_{\mathrm{NS}}$，再相加得到窗口损失。
 >    4. 在同一组当前参数上计算梯度，累加重复词的贡献。
->    5. 按 $\theta\leftarrow\theta-\alpha\nabla_\theta J$ 更新参与本次损失的向量。
+>    5. 按 $\boldsymbol{\theta}\leftarrow\boldsymbol{\theta}-\alpha\nabla_{\boldsymbol{\theta}} J$ 更新参与本次损失的向量。
 > 3. **返回**：更新后的两张向量表。
 
 这里的负样本标签由抽样来源决定；即使抽到了当前正词或另一个真实上下文词，也按其负样本出现计入目标。若实现选择排除这些词，就改变了抽样规则，需要相应说明。
@@ -317,7 +317,7 @@ I like dogs
 
 先固定统计规则：窗口半径为 1，只统计紧邻中心词的左右两个位置；句首、句末只取存在的邻词；窗口不跨句。词表按 `I`、`like`、`cats`、`dogs` 排列。
 
-建立一个四行四列的矩阵 $X$，初始值全部为 0。每观察到一次“中心词 $i$ 配上下文词 $j$”，就在第 $i$ 行、第 $j$ 列加 1：
+建立一个四行四列的矩阵 $\mathbf{X}$，初始值全部为 0。每观察到一次“中心词 $i$ 配上下文词 $j$”，就在第 $i$ 行、第 $j$ 列加 1：
 
 $$
 X_{ij}\leftarrow X_{ij}+1.
@@ -344,7 +344,7 @@ $$
 
 例如，$X_{\mathrm{I},\mathrm{like}}=2$，因为两句话中的 `I` 右侧都出现了 `like`；$X_{\mathrm{like},\mathrm{cats}}=1$，因为只有第一句中的 `like` 与 `cats` 相邻。
 
-一般地，词表大小为 $|V|$ 时，$X\in\mathbb R^{|V|\times|V|}$。在上述规则下，每个元素的定义为：
+一般地，词表大小为 $|V|$ 时，$\mathbf{X}\in\mathbb R^{|V|\times|V|}$。在上述规则下，每个元素的定义为：
 
 $$
 X_{ij}=\text{遍历语料时，词 }j\text{ 落在中心词 }i\text{ 的窗口内的总次数}.
@@ -357,8 +357,8 @@ $$
 固定列顺序后，每一行就是一个向量。上表中：
 
 $$
-x_{\mathrm{cats}}=(0,1,0,0),\qquad
-x_{\mathrm{dogs}}=(0,1,0,0).
+\mathbf{x}_{\mathrm{cats}}=(0,1,0,0),\qquad
+\mathbf{x}_{\mathrm{dogs}}=(0,1,0,0).
 $$
 
 四个坐标依次记录与 `I`、`like`、`cats`、`dogs` 的共现次数。`cats` 和 `dogs` 的向量相同，表示在这份小语料和这套窗口规则下，它们具有相同的上下文计数。
@@ -400,51 +400,51 @@ $$
 
 ### 4.1 分解与低秩近似
 
-对于矩阵 $X\in\mathbb R^{n\times p}$，奇异值分解（SVD）的紧凑形式为：
+对于矩阵 $\mathbf{X}\in\mathbb R^{n\times p}$，奇异值分解（SVD）的紧凑形式为：
 
 $$
-X=Q\Sigma R^\top.
+\mathbf{X}=\mathbf{Q}\boldsymbol{\Sigma} \mathbf{R}^\top.
 $$
 
-若 $X$ 的秩为 $r$，则 $Q\in\mathbb R^{n\times r}$、$R\in\mathbb R^{p\times r}$ 的列分别正交归一，$\Sigma\in\mathbb R^{r\times r}$ 的对角线是从大到小排列的非负奇异值。
+若 $\mathbf{X}$ 的秩为 $r$，则 $\mathbf{Q}\in\mathbb R^{n\times r}$、$\mathbf{R}\in\mathbb R^{p\times r}$ 的列分别正交归一，$\boldsymbol{\Sigma}\in\mathbb R^{r\times r}$ 的对角线是从大到小排列的非负奇异值。
 
 保留最大的 $k$ 个奇异值及其对应方向，得到：
 
 $$
-X_k=Q_k\Sigma_kR_k^\top,\qquad k\le r.
+\mathbf{X}_k=\mathbf{Q}_k\boldsymbol{\Sigma}_k\mathbf{R}_k^\top,\qquad k\le r.
 $$
 
 它用 $k$ 个共享方向近似原矩阵。在所有秩不超过 $k$ 的矩阵中，截断 SVD 最小化重建误差：
 
 $$
-X_k\in\operatorname*{arg\,min}_{\operatorname{rank}(A)\le k}\|X-A\|_F^2.
+\mathbf{X}_k\in\operatorname*{arg\,min}_{\operatorname{rank}(\mathbf{A})\le k}\|\mathbf{X}-\mathbf{A}\|_F^2.
 $$
 
-这里 $\|X-A\|_F^2$ 就是所有元素重建误差的平方和。
+这里 $\|\mathbf{X}-\mathbf{A}\|_F^2$ 就是所有元素重建误差的平方和。
 
-### 4.2 词向量具体取哪一个矩阵
+### 4.2 基于 SVD 的词向量表示
 
 一种常见选择是：
 
 $$
-E=Q_k\Sigma_k\in\mathbb R^{n\times k}.
+\mathbf{E}=\mathbf{Q}_k\boldsymbol{\Sigma}_k\in\mathbb R^{n\times k}.
 $$
 
-第 $i$ 行 $E_{i,:}$ 就是词 $i$ 的 $k$ 维表示，它与 $R_k$ 的各行配合，可以重建原来的上下文统计：
+第 $i$ 行 $\mathbf{E}_{i,:}$ 就是词 $i$ 的 $k$ 维表示，它与 $\mathbf{R}_k$ 的各行配合，可以重建原来的上下文统计：
 
 $$
-(X_k)_{ij}=E_{i,:}(R_k)_{j,:}^\top.
+(\mathbf{X}_k)_{ij}=\mathbf{E}_{i,:}(\mathbf{R}_k)_{j,:}^\top.
 $$
 
 原来每个词用一条长度为 $p$ 的计数行表示，现在用长度为 $k$ 的坐标表示。多个词共享同一组重建方向，因而能够利用整体统计中的相关结构。
 
-只取 $Q_k$ 也是一种表示选择，但它去掉了奇异值的尺度，与 $Q_k\Sigma_k$ 不相同。判断向量含义时，要看实际取了分解的哪一部分。
+只取 $\mathbf{Q}_k$ 也是一种表示选择，但它去掉了奇异值的尺度，与 $\mathbf{Q}_k\boldsymbol{\Sigma}_k$ 不相同。判断向量含义时，要看实际取了分解的哪一部分。
 
 低秩近似优化的是统计矩阵的重建，不直接优化“词义是否正确”。如果原始矩阵被高频词主导，保留下来的主要方向也可能主要反映词频，因此统计加权同样重要。
 
 ## 5. GloVe：让向量拟合全局共现统计
 
-### 5.1 概率比为什么能突出词义差异
+### 5.1 共现概率比与词义差异
 
 对共现矩阵按行归一化：
 
@@ -469,7 +469,7 @@ $$
 
 ![ice与steam在不同探测词上的共现概率及比值](figures/lecture02/glove-ratios.png)
 
-### 5.2 为什么取对数并使用向量差
+### 5.2 对数共现统计与向量差
 
 取对数后，比值变成差：
 
@@ -478,10 +478,10 @@ $$
 =\log P(k\mid i)-\log P(k\mid j).
 $$
 
-如果希望词向量之间的差能够表达这种关系，就可以让向量点积拟合对数共现统计。GloVe 使用目标词向量 $w_i$、上下文向量 $\tilde w_j$，以及各自的标量偏置 $b_i,\tilde b_j$：
+如果希望词向量之间的差能够表达这种关系，就可以让向量点积拟合对数共现统计。GloVe 使用目标词向量 $\mathbf{w}_i$、上下文向量 $\tilde{\mathbf{w}}_j$，以及各自的标量偏置 $b_i,\tilde b_j$：
 
 $$
-\boxed{w_i^\top\tilde w_j+b_i+\tilde b_j\approx\log X_{ij}}.
+\boxed{\mathbf{w}_i^\top\tilde{\mathbf{w}}_j+b_i+\tilde b_j\approx\log X_{ij}}.
 $$
 
 两套向量的作用仍由目标词和上下文词这两种角色区分。偏置用于吸收只依赖某个词的整体频率因素，使点积主要拟合词对之间的交互关系。
@@ -489,7 +489,7 @@ $$
 对同一个探测词 $k$，将目标词 $i,j$ 的两式相减：
 
 $$
-(w_i-w_j)^\top\tilde w_k+(b_i-b_j)
+(\mathbf{w}_i-\mathbf{w}_j)^\top\tilde{\mathbf{w}}_k+(b_i-b_j)
 \approx\log X_{ik}-\log X_{jk}.
 $$
 
@@ -506,13 +506,13 @@ $$
 
 例如，`drive → driver`、`swim → swimmer` 都涉及“动作与执行者”。如果这种关系在表示中具有近似一致的方向，就能用向量差观察它；低维可视化只是展示手段。
 
-### 5.3 加权平方误差如何训练向量
+### 5.3 加权平方误差目标
 
 GloVe 将上述近似写成需要最小化的目标：
 
 $$
 \boxed{J=\sum_{i,j:X_{ij}>0}f(X_{ij})
-\left(w_i^\top\tilde w_j+b_i+\tilde b_j-\log X_{ij}\right)^2}.
+\left(\mathbf{w}_i^\top\tilde{\mathbf{w}}_j+b_i+\tilde b_j-\log X_{ij}\right)^2}.
 $$
 
 括号内是预测值与目标对数计数的误差；平方使正负误差都受到惩罚。权重函数 $f$ 控制不同计数的贡献：低计数统计不够可靠，极高计数也不应无限主导训练。
@@ -523,7 +523,7 @@ $$
 
 ![GloVe的对数共现拟合与加权平方误差目标](figures/lecture02/glove-objective.png)
 
-### 5.4 三种方法分别在优化什么
+### 5.4 负采样、SVD 与 GloVe 的目标比较
 
 | 方法 | 训练数据形式 | 直接优化的目标 |
 | --- | --- | --- |
@@ -533,7 +533,7 @@ $$
 
 GloVe 的“全局”指汇总整个语料的统计；每个计数仍然可以来自局部窗口。三者都利用上下文规律，但损失、计算方式和得到的表示并不相同。
 
-## 6. 怎样判断词向量是否有用
+## 6. 词向量的评估
 
 ### 6.1 内在评估：直接检查表示中的关系
 
@@ -543,11 +543,11 @@ GloVe 的“全局”指汇总整个语料的统计；每个计数仍然可以�
 
 常用的 Spearman 秩相关系数，是先把两组分数分别转为排名，再计算排名之间的相关性。它衡量排序一致程度，不是分类准确率。相似性、主题相关性也可能是不同的标注标准，需要看数据集实际问了什么。
 
-**类比评价**：对于 $a:b::c:d$，构造查询向量 $q=v_b-v_a+v_c$，搜索与它余弦相似度最大的词：
+**类比评价**：对于 $a:b::c:d$，构造查询向量 $\mathbf{q}=\mathbf{v}_b-\mathbf{v}_a+\mathbf{v}_c$，搜索与它余弦相似度最大的词：
 
 $$
 \hat d=\operatorname*{arg\,max}_{w\in V\setminus\{a,b,c\}}
-\frac{v_w^\top q}{\|v_w\|_2\|q\|_2}.
+\frac{\mathbf{v}_w^\top \mathbf{q}}{\|\mathbf{v}_w\|_2\|\mathbf{q}\|_2}.
 $$
 
 输入词从候选中排除。`man : woman :: king : ?` 的预期答案为 `queen`，还可以分别统计语义类比与语法形式类比的正确率。
@@ -578,7 +578,7 @@ $$
 
 **内在高分不保证外在高分。** 向量可能擅长表达词间相似性，却没有保留某个分类任务最需要的信息；下游模型也可能不会有效利用这些信息。
 
-## 7. 一个词有多个词义时怎么办
+## 7. 多义词的向量表示
 
 静态词向量为同一个词固定分配一个表示。例如，`bank` 在 `river bank` 和 `bank loan` 中分别表示河岸和金融机构，但两次查表会得到同一个向量。
 
@@ -606,11 +606,11 @@ $$
 另一种理解方式是把静态向量近似看作多个词义方向的混合：
 
 $$
-v_w\approx\sum_{s=1}^{q}\alpha_s v_{w,s},\qquad
+\mathbf{v}_w\approx\sum_{s=1}^{q}\alpha_s \mathbf{v}_{w,s},\qquad
 \alpha_s\ge0,\quad\sum_s\alpha_s=1.
 $$
 
-其中 $v_{w,s}$ 是词义方向，$\alpha_s$ 表示其混合权重；一种直观模型按各词义的相对频率设置权重。
+其中 $\mathbf{v}_{w,s}$ 是词义方向，$\alpha_s$ 表示其混合权重；一种直观模型按各词义的相对频率设置权重。
 
 这是一种解释表示结构的近似观点，不能据此断定任意静态词向量都能被唯一分解。常见义可能贡献更大，罕见义则难以从混合向量中读出。
 
@@ -622,29 +622,29 @@ $$
 
 ### 8.1 输入：拼接窗口中的词向量
 
-在 `the museums in Paris are amazing to see` 中，以 `Paris` 为中心、窗口半径为 2，取出 `museums in Paris are amazing` 的五个词向量，按原顺序首尾拼接，得到输入 $x$。
+在 `the museums in Paris are amazing to see` 中，以 `Paris` 为中心、窗口半径为 2，取出 `museums in Paris are amazing` 的五个词向量，按原顺序首尾拼接，得到输入 $\mathbf{x}$。
 
 如果每个词向量有 $d$ 维，拼接后就是 $5d$ 维。每个词占据固定的一段坐标，因此拼接保留了窗口内的词序。对句子中每个词分别取窗口、运行分类器，就能得到逐词的分类结果。
 
-这些输入需要配上人工标注的正确类别，才能训练分类器。这属于**监督学习**：每条训练样本包含窗口输入 $x$ 和中心词的类别标签 $y$。地点二分类中，$y=1$ 表示地点，$y=0$ 表示非地点。
+这些输入需要配上人工标注的正确类别，才能训练分类器。这属于**监督学习**：每条训练样本包含窗口输入 $\mathbf{x}$ 和中心词的类别标签 $y$。地点二分类中，$y=1$ 表示地点，$y=0$ 表示非地点。
 
 ### 8.2 隐藏层：从一个神经元到一组特征
 
-一个神经元接收输入向量 $x$，先对各分量加权求和，再加上偏置，最后经过激活函数：
+一个神经元接收输入向量 $\mathbf{x}$，先对各分量加权求和，再加上偏置，最后经过激活函数：
 
 $$
-h_i=f(w_i^\top x+b_i).
+h_i=f(\mathbf{w}_i^\top \mathbf{x}+b_i).
 $$
 
-$w_i$ 决定这个单元怎样组合输入，$b_i$ 调整加权和的基准，$f$ 是非线性激活函数，例如 Sigmoid、$\tanh$ 或 ReLU。输出 $h_i$ 是一个数。
+$\mathbf{w}_i$ 决定这个单元怎样组合输入，$b_i$ 调整加权和的基准，$f$ 是非线性激活函数，例如 Sigmoid、$\tanh$ 或 ReLU。输出 $h_i$ 是一个数。
 
-把同一个窗口输入交给多个这样的单元，每个单元有自己的权重和偏置，就得到一个特征向量 $h$。将各单元的权重按行排列成矩阵 $W$，可以一次写出整层计算：
+把同一个窗口输入交给多个这样的单元，每个单元有自己的权重和偏置，就得到一个特征向量 $\mathbf{h}$。将各单元的权重按行排列成矩阵 $\mathbf{W}$，可以一次写出整层计算：
 
 $$
-z=Wx+b,\qquad h=f(z).
+\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}).
 $$
 
-这里 $f$ 对 $z$ 的每个分量分别计算：$h_i=f(z_i)$。例如，输入有 $5d$ 维、隐藏层有 $H$ 个单元时，$W$ 有 $H$ 行、$5d$ 列，输出 $h$ 有 $H$ 维。
+这里 $f$ 对 $\mathbf{z}$ 的每个分量分别计算：$h_i=f(z_i)$。例如，输入有 $5d$ 维、隐藏层有 $H$ 个单元时，$\mathbf{W}$ 有 $H$ 行、$5d$ 列，输出 $\mathbf{h}$ 有 $H$ 维。
 
 这些单元称为**隐藏单元**，因为训练数据没有给出它们各自应输出什么。我们只标注最终的地点类别，由分类损失决定哪些中间特征值得学习，而不预先规定某个单元必须识别介词或地名。
 
@@ -653,10 +653,10 @@ $$
 输出层将隐藏表示转换成一个分数，再用 Sigmoid 得到地点概率：
 
 $$
-s=r^\top h+\beta,\qquad \hat p=\sigma(s).
+s=\mathbf{r}^\top \mathbf{h}+\beta,\qquad \hat p=\sigma(s).
 $$
 
-$r$ 和 $\beta$ 是输出层的权重与偏置。这里 $\hat p$ 表示“当前中心词为地点”的概率。例如，$\hat p=0.9$ 表示模型给地点类分配了 0.9 的概率，给非地点类分配了 0.1。
+$\mathbf{r}$ 和 $\beta$ 是输出层的权重与偏置。这里 $\hat p$ 表示“当前中心词为地点”的概率。例如，$\hat p=0.9$ 表示模型给地点类分配了 0.9 的概率，给非地点类分配了 0.1。
 
 ![上下文词向量、隐藏层与地点分类概率](figures/lecture02/window-classifier.png)
 
@@ -699,7 +699,7 @@ $$
 激活函数的非线性在这里很关键。如果每层只做加权求和与偏置相加，两层就能合并成一层：
 
 $$
-W_2(W_1x+b_1)+b_2=(W_2W_1)x+(W_2b_1+b_2).
+\mathbf{W}_2(\mathbf{W}_1\mathbf{x}+\mathbf{b}_1)+\mathbf{b}_2=(\mathbf{W}_2\mathbf{W}_1)\mathbf{x}+(\mathbf{W}_2\mathbf{b}_1+\mathbf{b}_2).
 $$
 
 这样的层无论叠多少次，最终仍只是对原输入做一次仿射变换。加入非线性激活后，一般不能这样合并，模型才能通过多层组合表达更复杂的分类边界。
