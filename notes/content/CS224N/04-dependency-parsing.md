@@ -291,20 +291,14 @@ $$
 
 $$
 \mathbf{h}=\operatorname{ReLU}(\mathbf{W}\mathbf{x}+\mathbf{b}_1),\qquad
-\boldsymbol{\ell}=\mathbf{U}\mathbf{h}+\mathbf{b}_2.
+\mathbf{y}=\operatorname{softmax}(\mathbf{U}\mathbf{h}+\mathbf{b}_2).
 $$
 
-其中 $\mathbf{W}\in\mathbb R^{H\times D}$、$\mathbf{U}\in\mathbb R^{K\times H}$，$\mathbf{b}_1$ 和 $\mathbf{b}_2$ 是偏置向量。$\boldsymbol{\ell}$ 是所有动作的分数向量，分量 $\ell_a$ 对应动作 $a$。
+其中 $\mathbf{W}\in\mathbb R^{H\times D}$、$\mathbf{U}\in\mathbb R^{K\times H}$，$\mathbf{b}_1$ 和 $\mathbf{b}_2$ 是偏置向量。$\mathbf{y}$ 是所有动作的预测概率向量，分量 $y_a$ 对应动作 $a$。
 
 不预测关系标签时，输出有 SHIFT、LEFT-ARC、RIGHT-ARC 三类。若关系标签集合为 $R$，每种标签各对应一个左弧动作和一个右弧动作，总类别数为 $K=1+2|R|$。
 
-在当前合法动作集合 $\mathcal L$ 上归一化：
-
-$$
-\hat p_a=\frac{\exp(\ell_a)}{\sum_{b\in\mathcal L}\exp(\ell_b)},\qquad a\in\mathcal L.
-$$
-
-例如，缓冲区已经为空时，SHIFT 就不应参与动作选择。可在实现中将非法动作的分数屏蔽，再执行 Softmax 或取最高分。
+选择动作时，需要排除当前状态下不能执行的动作。例如，缓冲区已经为空时，不能再执行 SHIFT。实现中可以在 Softmax 之前屏蔽非法动作的分数，再对其余动作计算概率。
 
 ![神经依存解析器的嵌入隐藏层与动作Softmax](figures/lecture04/neural-parser.png)
 
@@ -319,10 +313,10 @@ $$
 
 这个正确动作来自训练句子已经标注好的依存树：我们知道 `ate → I` 是正确关系，因此可以用建立这条关系的动作作为训练答案。沿着正确解析过程，将每一步的状态和动作保存下来，就得到多条训练样本。
 
-模型接收状态向量后，为各个动作给出概率。设正确动作的预测概率为 $\hat p_{a^*}$，这条样本的交叉熵损失为：
+模型接收状态向量后，为各个动作给出概率。设正确动作的预测概率为 $y_{a^*}$，这条样本的交叉熵损失为：
 
 $$
-J=-\log\hat p_{a^*}.
+J=-\log y_{a^*}.
 $$
 
 例如，模型给上述 LEFT-ARC 主语动作的概率只有 $0.2$，损失约为 $1.609$；概率提高到 $0.8$ 时，损失降为约 $0.223$。训练就是利用这个损失计算梯度，更新网络参数和输入嵌入，使模型更容易选中正确动作。

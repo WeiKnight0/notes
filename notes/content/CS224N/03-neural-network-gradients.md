@@ -39,10 +39,10 @@ $$
 以地点分类器为例，将窗口中的词向量拼接成输入 $\mathbf{x}$，依次计算：
 
 $$
-\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}),\qquad s=\mathbf{u}^\top \mathbf{h}+\beta,\qquad \hat p=\sigma(s).
+\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}),\qquad s=\mathbf{u}^\top \mathbf{h},\qquad \hat p=\sigma(s).
 $$
 
-其中 $\mathbf{z}$ 是隐藏层激活之前的加权和，$\mathbf{h}$ 是隐藏表示，$s$ 是分类分数，$\hat p$ 是地点概率。$\mathbf{W},\mathbf{b},\mathbf{u},\beta$ 都是可学习参数，输入中的词向量也可以参与训练。
+其中 $\mathbf{z}$ 是隐藏层激活之前的加权和，$\mathbf{h}$ 是隐藏表示，$s$ 是分类分数，$\hat p$ 是地点概率。$\mathbf{W},\mathbf{b},\mathbf{u}$ 都是可学习参数，输入中的词向量也可以参与训练。
 
 标签为 $y\in\{0,1\}$ 时，二分类交叉熵为：
 
@@ -183,10 +183,10 @@ $$
 z_i=\sum_jW_{ij}x_j+b_i.
 $$
 
-所以 $\partial z_i/\partial x_j=W_{ij}$，雅可比矩阵就是 $\mathbf{W}$。若已知损失对 $\mathbf{z}$ 的梯度 $\boldsymbol{\delta}=\nabla_{\mathbf{z}}J$，则：
+所以 $\partial z_i/\partial x_j=W_{ij}$，雅可比矩阵就是 $\mathbf{W}$。若已知损失对 $\mathbf{z}$ 的梯度 $\mathbf{g}_z=\nabla_{\mathbf{z}}J$，则：
 
 $$
-\nabla_{\mathbf{x}}J=\mathbf{W}^\top\boldsymbol{\delta},\qquad \nabla_{\mathbf{b}}J=\boldsymbol{\delta}.
+\nabla_{\mathbf{x}}J=\mathbf{W}^\top\mathbf{g}_z,\qquad \nabla_{\mathbf{b}}J=\mathbf{g}_z.
 $$
 
 偏置只加到对应输出上，局部导数为 1，因此直接接收该位置的梯度。
@@ -201,48 +201,41 @@ $$
 
 ## 4. 单隐藏层分类网络的梯度推导
 
-### 4.1 前向计算与输出误差
+### 4.1 前向计算与求导目标
 
-继续使用地点二分类网络。设输入为 $n$ 维，隐藏层有 $m$ 个单元：
+地点分类网络先计算分数 $s$，再将它转换为概率。这里先按课件推导**分数 $s$ 对各参数和输入的梯度**。设输入为 $n$ 维，隐藏层有 $m$ 个单元：
 
 $$
 \mathbf{x}\in\mathbb R^n,\quad \mathbf{W}\in\mathbb R^{m\times n},\quad \mathbf{b},\mathbf{u}\in\mathbb R^m,
 $$
 
 $$
-\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}),\qquad s=\mathbf{u}^\top \mathbf{h}+\beta,\qquad \hat p=\sigma(s).
+\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}),\qquad s=\mathbf{u}^\top\mathbf{h}.
 $$
 
-输出损失仍为二分类交叉熵。先对分数 $s$ 求导：
+求导顺序与计算顺序相反：从 $s$ 出发，经过 $\mathbf{h}$、$\mathbf{z}$，再传到权重、偏置和输入。
+
+### 4.2 从分数传回隐藏层
+
+由 $s=\sum_i u_i h_i$，得到：
 
 $$
-\frac{\partial J}{\partial\hat p}=-\frac y{\hat p}+\frac{1-y}{1-\hat p},\qquad
-\frac{\partial\hat p}{\partial s}=\hat p(1-\hat p).
+\nabla_{\mathbf{u}}s=\mathbf{h},\qquad \nabla_{\mathbf{h}}s=\mathbf{u}.
 $$
 
-两者相乘并化简：
+每个隐藏单元满足 $h_i=f(z_i)$，因此：
 
 $$
-\boxed{g_s=\frac{\partial J}{\partial s}=\hat p-y}.
+\frac{\partial s}{\partial z_i}=u_i f'(z_i).
 $$
 
-$g_s$ 是分数处的误差信号。若真实标签为地点，$y=1$，而预测概率只有 0.2，则 $g_s=-0.8$，梯度下降会推动分数增加。
-
-### 4.2 从输出层传回隐藏层
-
-由于 $s=\mathbf{u}^\top \mathbf{h}+\beta$，输出层参数的梯度为：
+将这些偏导排成向量，记为 $\boldsymbol{\delta}$：
 
 $$
-\boxed{\nabla_{\mathbf{u}}J=g_s\mathbf{h}},\qquad \boxed{\frac{\partial J}{\partial\beta}=g_s}.
+\boxed{\boldsymbol{\delta}=\nabla_{\mathbf{z}}s=\mathbf{u}\odot f'(\mathbf{z})}.
 $$
 
-传到隐藏表示的梯度为 $\nabla_{\mathbf{h}}J=g_s\mathbf{u}$。再经过激活函数，得到：
-
-$$
-\boxed{\boldsymbol{\delta}=\nabla_{\mathbf{z}}J=(g_s\mathbf{u})\odot f'(\mathbf{z})}.
-$$
-
-$\boldsymbol{\delta}$ 是损失对隐藏层加权和 $\mathbf{z}$ 的梯度，每个分量对应一个隐藏单元。它同时用于计算隐藏层权重、偏置和输入的梯度，因此只需计算一次。
+$\delta_i$ 表示第 $i$ 个隐藏单元的加权和 $z_i$ 改变时，分数 $s$ 怎样变化。它会用于计算隐藏层权重、偏置和输入的梯度。
 
 ![沿点积、激活和线性变换应用链式法则](figures/lecture03/chain-rule-score.png)
 
@@ -251,13 +244,13 @@ $\boldsymbol{\delta}$ 是损失对隐藏层加权和 $\mathbf{z}$ 的梯度，�
 单个权重 $W_{ij}$ 只直接影响 $z_i$，且 $\partial z_i/\partial W_{ij}=x_j$。因此：
 
 $$
-\frac{\partial J}{\partial W_{ij}}=\delta_i x_j.
+\frac{\partial s}{\partial W_{ij}}=\delta_i x_j.
 $$
 
 将每个权重的偏导排列成矩阵：
 
 $$
-\boxed{\nabla_{\mathbf{W}}J=\boldsymbol{\delta} \mathbf{x}^\top}.
+\boxed{\nabla_{\mathbf{W}}s=\boldsymbol{\delta}\mathbf{x}^\top}.
 $$
 
 这是外积：$m$ 维列向量乘 $n$ 维行向量，得到 $m\times n$ 的矩阵，与 $\mathbf{W}$ 同形状。例如：
@@ -266,36 +259,40 @@ $$
 \boldsymbol{\delta}=\begin{bmatrix}2\\-1\end{bmatrix},\quad
 \mathbf{x}=\begin{bmatrix}3\\4\\5\end{bmatrix}
 \quad\Longrightarrow\quad
-\boldsymbol{\delta} \mathbf{x}^\top=\begin{bmatrix}6&8&10\\-3&-4&-5\end{bmatrix}.
+\boldsymbol{\delta}\mathbf{x}^\top=\begin{bmatrix}6&8&10\\-3&-4&-5\end{bmatrix}.
 $$
 
-每一行使用对应隐藏单元的误差信号，对全部输入分量进行缩放。
+每一行使用对应的 $\delta_i$，乘以输入的各个分量。
 
 ![权重梯度由误差信号与局部输入组成](figures/lecture03/weight-gradient.png)
 
 偏置和输入梯度为：
 
 $$
-\boxed{\nabla_{\mathbf{b}}J=\boldsymbol{\delta}},\qquad \boxed{\nabla_{\mathbf{x}}J=\mathbf{W}^\top\boldsymbol{\delta}}.
+\boxed{\nabla_{\mathbf{b}}s=\boldsymbol{\delta}},\qquad
+\boxed{\nabla_{\mathbf{x}}s=\mathbf{W}^\top\boldsymbol{\delta}}.
 $$
 
-若 $\mathbf{x}$ 由五个词向量拼接而成，就将 $\nabla_{\mathbf{x}}J$ 按同样位置切成五段，分别传给对应词向量。同一个词出现多次时，各段梯度需要累加到同一份词向量参数上。
+若 $\mathbf{x}$ 由五个词向量拼接而成，就将 $\nabla_{\mathbf{x}}s$ 按同样位置切成五段，分别传给对应词向量。同一个词出现多次时，各段梯度需要累加到同一份词向量参数上。
 
-### 4.4 梯度计算顺序与中间结果复用
+### 4.4 从分数梯度得到损失梯度
 
-这个网络的反向计算顺序为：
+训练时要减小的是损失 $J$。对于 $\hat p=\sigma(s)$ 和二分类交叉熵，有：
 
-| 顺序 | 计算 | 用途 |
-| --- | --- | --- |
-| 1 | $g_s=\hat p-y$ | 输出层的误差信号 |
-| 2 | $\nabla_{\mathbf{u}}J=g_s\mathbf{h}$，$\partial J/\partial\beta=g_s$ | 输出层参数梯度 |
-| 3 | $\boldsymbol{\delta}=(g_s\mathbf{u})\odot f'(\mathbf{z})$ | 隐藏层的误差信号 |
-| 4 | $\nabla_{\mathbf{W}}J=\boldsymbol{\delta} \mathbf{x}^\top$，$\nabla_{\mathbf{b}}J=\boldsymbol{\delta}$ | 隐藏层参数梯度 |
-| 5 | $\nabla_{\mathbf{x}}J=\mathbf{W}^\top\boldsymbol{\delta}$ | 输入及词向量梯度 |
+$$
+\frac{\partial J}{\partial s}=\hat p-y.
+$$
 
-各步都使用前向计算时的参数和中间值，全部梯度算完后再更新参数。不能先更新 $\mathbf{u}$，再用更新后的 $\mathbf{u}$ 计算同一次反向传播中的 $\boldsymbol{\delta}$。
+因此，前面算出的每个分数梯度都要乘以这个因子，才得到训练使用的损失梯度。例如：
 
-若只求分数 $s$ 的梯度，而不经过分类损失，起始信号是 $\partial s/\partial s=1$。换成训练损失后，起始信号是 $g_s=\hat p-y$。两者的后续链式法则相同，但不能混用最终梯度。
+$$
+\nabla_{\mathbf{W}}J=(\hat p-y)\boldsymbol{\delta}\mathbf{x}^\top,\qquad
+\nabla_{\mathbf{u}}J=(\hat p-y)\mathbf{h}.
+$$
+
+若真实标签为地点，$y=1$，而预测概率只有 $0.2$，则 $\hat p-y=-0.8$，梯度下降会推动分数增加。
+
+各步都使用前向计算时的参数和中间值，全部梯度算完后再更新参数。$\boldsymbol{\delta}$ 及其他中间梯度可以重复使用，不必为每个参数重新计算整条求导链。
 
 ## 5. 计算图与反向传播
 

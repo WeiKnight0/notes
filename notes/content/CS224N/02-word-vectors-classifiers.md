@@ -264,13 +264,13 @@ $$
 
 ### 2.6 负样本的抽样分布
 
-设词 $w$ 在语料中出现 $f(w)$ 次，常用噪声分布为：
+设 $U(w)$ 是词 $w$ 在语料中的相对频率，即该词出现次数除以总词数。负采样使用的抽样分布为：
 
 $$
-P_n(w)=\frac{f(w)^{3/4}}{\sum_{a\in V}f(a)^{3/4}}.
+P(w)=\frac{U(w)^{3/4}}{Z},\qquad Z=\sum_{a\in V}U(a)^{3/4}.
 $$
 
-它仍然更常抽到高频词，但会削弱高频词的优势。例如，两个词的频率比为 $16:1$，变换后的抽样概率比为 $8:1$。低频词的相对占比因而提高。
+其中 $Z$ 使所有词的抽样概率之和为 1。这个分布仍然更常抽到高频词，但会削弱高频词的优势。例如，两个词的频率比为 $16:1$，变换后的抽样概率比为 $8:1$。低频词的相对占比因而提高。
 
 若直接均匀抽样，则每个词概率相同；若直接按词频抽样，则大量样本会集中到最高频的词。$3/4$ 次幂是介于两者之间的经验选择。
 
@@ -280,10 +280,10 @@ $$
 >
 > **输出**：中心词向量表和外围词向量表。
 >
-> 1. **准备**：统计词频，构造噪声分布 $P_n$，随机初始化两张向量表。
+> 1. **准备**：统计词频，构造噪声分布 $P$，随机初始化两张向量表。
 > 2. **循环**：重复 $S$ 次：
 >    1. 均匀抽取一个中心位置，并提取它的所有合法外围词。
->    2. 为每个正词对独立地从 $P_n$ 有放回抽取 $K$ 个负词。
+>    2. 为每个正词对独立地从 $P$ 有放回抽取 $K$ 个负词。
 >    3. 对该窗口所有正词对分别计算 $J_{\mathrm{NS}}$，再相加得到窗口损失。
 >    4. 在同一组当前参数上计算梯度，累加重复词的贡献。
 >    5. 按 $\boldsymbol{\theta}\leftarrow\boldsymbol{\theta}-\alpha\nabla_{\boldsymbol{\theta}} J$ 更新参与本次损失的向量。
@@ -403,15 +403,15 @@ $$
 对于矩阵 $\mathbf{X}\in\mathbb R^{n\times p}$，奇异值分解（SVD）的紧凑形式为：
 
 $$
-\mathbf{X}=\mathbf{Q}\boldsymbol{\Sigma} \mathbf{R}^\top.
+\mathbf{X}=\mathbf{U}\boldsymbol{\Sigma} \mathbf{V}^\top.
 $$
 
-若 $\mathbf{X}$ 的秩为 $r$，则 $\mathbf{Q}\in\mathbb R^{n\times r}$、$\mathbf{R}\in\mathbb R^{p\times r}$ 的列分别正交归一，$\boldsymbol{\Sigma}\in\mathbb R^{r\times r}$ 的对角线是从大到小排列的非负奇异值。
+若 $\mathbf{X}$ 的秩为 $r$，则 $\mathbf{U}\in\mathbb R^{n\times r}$、$\mathbf{V}\in\mathbb R^{p\times r}$ 的列分别正交归一，$\boldsymbol{\Sigma}\in\mathbb R^{r\times r}$ 的对角线是从大到小排列的非负奇异值。
 
 保留最大的 $k$ 个奇异值及其对应方向，得到：
 
 $$
-\mathbf{X}_k=\mathbf{Q}_k\boldsymbol{\Sigma}_k\mathbf{R}_k^\top,\qquad k\le r.
+\mathbf{X}_k=\mathbf{U}_k\boldsymbol{\Sigma}_k\mathbf{V}_k^\top,\qquad k\le r.
 $$
 
 它用 $k$ 个共享方向近似原矩阵。在所有秩不超过 $k$ 的矩阵中，截断 SVD 最小化重建误差：
@@ -427,18 +427,18 @@ $$
 一种常见选择是：
 
 $$
-\mathbf{E}=\mathbf{Q}_k\boldsymbol{\Sigma}_k\in\mathbb R^{n\times k}.
+\mathbf{E}=\mathbf{U}_k\boldsymbol{\Sigma}_k\in\mathbb R^{n\times k}.
 $$
 
-第 $i$ 行 $\mathbf{E}_{i,:}$ 就是词 $i$ 的 $k$ 维表示，它与 $\mathbf{R}_k$ 的各行配合，可以重建原来的上下文统计：
+第 $i$ 行 $\mathbf{E}_{i,:}$ 就是词 $i$ 的 $k$ 维表示，它与 $\mathbf{V}_k$ 的各行配合，可以重建原来的上下文统计：
 
 $$
-(\mathbf{X}_k)_{ij}=\mathbf{E}_{i,:}(\mathbf{R}_k)_{j,:}^\top.
+(\mathbf{X}_k)_{ij}=\mathbf{E}_{i,:}(\mathbf{V}_k)_{j,:}^\top.
 $$
 
 原来每个词用一条长度为 $p$ 的计数行表示，现在用长度为 $k$ 的坐标表示。多个词共享同一组重建方向，因而能够利用整体统计中的相关结构。
 
-只取 $\mathbf{Q}_k$ 也是一种表示选择，但它去掉了奇异值的尺度，与 $\mathbf{Q}_k\boldsymbol{\Sigma}_k$ 不相同。判断向量含义时，要看实际取了分解的哪一部分。
+只取 $\mathbf{U}_k$ 也是一种表示选择，但它去掉了奇异值的尺度，与 $\mathbf{U}_k\boldsymbol{\Sigma}_k$ 不相同。判断向量含义时，要看实际取了分解的哪一部分。
 
 低秩近似优化的是统计矩阵的重建，不直接优化“词义是否正确”。如果原始矩阵被高频词主导，保留下来的主要方向也可能主要反映词频，因此统计加权同样重要。
 
@@ -653,10 +653,10 @@ $$
 输出层将隐藏表示转换成一个分数，再用 Sigmoid 得到地点概率：
 
 $$
-s=\mathbf{r}^\top \mathbf{h}+\beta,\qquad \hat p=\sigma(s).
+s=\mathbf{u}^\top \mathbf{h},\qquad \hat p=\sigma(s).
 $$
 
-$\mathbf{r}$ 和 $\beta$ 是输出层的权重与偏置。这里 $\hat p$ 表示“当前中心词为地点”的概率。例如，$\hat p=0.9$ 表示模型给地点类分配了 0.9 的概率，给非地点类分配了 0.1。
+$\mathbf{u}$ 是输出层的权重向量。这里 $\hat p$ 表示“当前中心词为地点”的概率。例如，$\hat p=0.9$ 表示模型给地点类分配了 0.9 的概率，给非地点类分配了 0.1。
 
 ![上下文词向量、隐藏层与地点分类概率](figures/lecture02/window-classifier.png)
 

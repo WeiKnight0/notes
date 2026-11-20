@@ -330,24 +330,24 @@ $$
 
 ### 6.4 矩阵形式与形状检查
 
-把全部外围向量按列排列：
+把每个外围词的向量转置后放在矩阵的一行，与课件中的 $\mathbf{U}\mathbf{v}_c$ 对应：
 
 $$
-\mathbf{U}=[\mathbf{u}_1,\ldots,\mathbf{u}_{|V|}]\in\mathbb R^{d\times|V|}.
+\mathbf{U}=\begin{bmatrix}\mathbf{u}_1^\top\\\vdots\\\mathbf{u}_{|V|}^\top\end{bmatrix}\in\mathbb R^{|V|\times d}.
 $$
 
 则前向计算和梯度可以写成：
 
 $$
-\mathbf{z}=\mathbf{U}^\top \mathbf{v}_c,\qquad \hat{\mathbf{y}}=\operatorname{softmax}(\mathbf{z}),
+\mathbf{z}=\mathbf{U}\mathbf{v}_c,\qquad \hat{\mathbf{y}}=\operatorname{softmax}(\mathbf{z}),
 $$
 
 $$
-\boxed{\nabla_{\mathbf{v}_c}J=\mathbf{U}(\hat{\mathbf{y}}-\mathbf{y})},\qquad
-\boxed{\nabla_{\mathbf{U}}J=\mathbf{v}_c(\hat{\mathbf{y}}-\mathbf{y})^\top}.
+\boxed{\nabla_{\mathbf{v}_c}J=\mathbf{U}^\top(\hat{\mathbf{y}}-\mathbf{y})},\qquad
+\boxed{\nabla_{\mathbf{U}}J=(\hat{\mathbf{y}}-\mathbf{y})\mathbf{v}_c^\top}.
 $$
 
-$\hat{\mathbf{y}}-\mathbf{y}$ 是“预测概率减真实标签”的误差向量。乘以 $\mathbf{U}$，得到 $d$ 维中心向量梯度；与 $\mathbf{v}_c$ 做外积，得到 $d\times|V|$ 的外围矩阵梯度。两者都与被更新参数的形状一致。
+$\hat{\mathbf{y}}-\mathbf{y}$ 是“预测概率减真实标签”的误差向量。左乘 $\mathbf{U}^\top$，得到 $d$ 维中心向量梯度；与 $\mathbf{v}_c^\top$ 做外积，得到 $|V|\times d$ 的外围矩阵梯度。两者都与被更新参数的形状一致。
 
 同一个词向量在多个训练词对中被使用时，它收到的梯度需要相加。整个窗口的梯度是各词对梯度之和，整个训练目标再按定义进行归一化。
 
@@ -393,7 +393,7 @@ $$
 > 2. **循环**：对 $k=1,\ldots,K$，执行以下步骤：
 >    1. **抽样**：从 $1,\ldots,T$ 中均匀、有放回地抽取 $b$ 个中心位置，组成批次 $\mathcal B$；重复抽到的位置重复计入。
 >    2. **构造词对**：对批次中每个位置 $t$，提取所有 $(w_t,w_{t+j})$，其中 $j\in\mathcal C_t$。
->    3. **前向计算**：对每个词对 $(c,o)$，计算整个词表的分数 $\mathbf{z}=\mathbf{U}^\top \mathbf{v}_c$，再计算 $\hat{\mathbf{y}}=\operatorname{softmax}(\mathbf{z})$ 和损失 $-\log\hat y_o$。
+>    3. **前向计算**：对每个词对 $(c,o)$，计算整个词表的分数 $\mathbf{z}=\mathbf{U}\mathbf{v}_c$，再计算 $\hat{\mathbf{y}}=\operatorname{softmax}(\mathbf{z})$ 和损失 $-\log\hat y_o$。
 >    4. **汇总损失**：将上述词对损失求和，再除以批大小 $b$，得到 $J_{\mathcal B}(\boldsymbol{\theta})$。
 >    5. **计算梯度**：在当前参数上计算 $\mathbf{g}=\nabla_{\boldsymbol{\theta}} J_{\mathcal B}(\boldsymbol{\theta})$，累加同一参数在各词对中的梯度贡献。
 >    6. **更新参数**：$\boldsymbol{\theta}\leftarrow\boldsymbol{\theta}-\alpha \mathbf{g}$。
