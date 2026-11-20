@@ -4,13 +4,11 @@ date: 2026-11-16
 lang: zh-cn
 ---
 
-> 主要来源：`lecture09-pretraining-updated.pdf`，64页；A4说明与原始代码包；minBERT项目说明的技术部分。按PDF物理页标记来源，重复提纲合并，行政要求跳过。课件图表无法读取的数值不猜测，不做OCR；本章保留13张课件知识图。
+> 主要来源：`lecture09-pretraining-updated.pdf`，64页；A4说明与原始代码包；minBERT项目说明的技术部分。
 
 ## 1. 子词：开放词汇如何映射到有限词表
 
 ### 1.1 整词词表与UNK的损失
-
-来源：P5–6、P9–11。
 
 传统整词模型从训练文本建立几万词的固定词表，测试时新词统一映射到**未知词标记（Unknown Token, UNK）**。这使不同新词、拼写变体与构词形式丢失区别，例如`taaaaasty`、`laern`、`Transformerify`可能都成为同一个UNK。
 
@@ -19,8 +17,6 @@ lang: zh-cn
 不同书写系统对“词”的边界也不一致：有的没有空格分词，附着成分可能连写或分写，复合词可写成多个空格分隔词，也可像德语`Lebensversicherungsgesellschaftsangestellter`连写。文字还可能主要表示音位、音节／拍，或组合不同单位。不能把英语空格切分当作所有语言天然共享的标准。
 
 ### 1.2 BPE训练词表
-
-来源：P7–8。
 
 **子词建模（Subword Modeling）**将词分成已知片段，片段可以涉及词的一部分、字符或字节。**字节对编码（Byte-pair Encoding, BPE）**的一种经典词级版本：
 
@@ -31,23 +27,19 @@ lang: zh-cn
 
 “符号”在第一次合并后就可能是多字符片段，后续统计不是永远只统计原始字符对。训练频次还要考虑每种词在语料中出现次数。
 
-P8的小例子以词频字典`low:5, lower:2, newest:6, widest:3`开始，图中展示合并`e s → es`，然后`es t → est`：`newest`与`widest`共同支持这两个高频合并。
+小例子以词频字典`low:5, lower:2, newest:6, widest:3`开始，图中展示合并`e s → es`，然后`es t → est`：`newest`与`widest`共同支持这两个高频合并。
 
 ![BPE从字符到es和est的逐次合并](figures/lecture09/bpe-merges.png)
 
-来源：Lecture 9，PDF P8；页面仅展示部分合并过程，不推定完整词表。
-
 ### 1.3 使用子词后的变化
 
-常见词可成为一个完整Token；罕见词被拆成多个片段。新拼写不再一定整体变成UNK，模型可组合已有片段表示；字符覆盖完整时，最坏可逐字符拆分。字符集本身不覆盖的新符号仍需相应处理，不能把有限字符词表说成绝对没有未知项。
+常见词可成为一个完整Token；罕见词被拆成多个片段。字符集本身不覆盖的新符号仍需相应处理，不能把有限字符词表说成绝对没有未知项。
 
 课件还提到WordPiece、SentencePiece。它们属于相关子词工具／方法，不能把名称视为完全相同的BPE算法。BERT的`##`是词内延续片段的表示约定；图示切分帮助理解机制，不代表所有Tokenizer都输出同一片段。
 
 ## 2. 从静态词向量到整个模型预训练
 
 ### 2.1 上下文决定当前词义
-
-来源：P13–15。
 
 分布语义的“a word by the company it keeps”启发了Word2Vec，但完整词义还取决于当前语境。`I record the record`中两个`record`扮演不同角色，静态词向量查表仍给同一拼写相同初始向量。
 
@@ -57,19 +49,13 @@ P8的小例子以词频字典`low:5, lower:2, newest:6, widest:3`开始，图中
 
 ![从仅词向量预训练到联合预训练上下文网络](figures/lecture09/whole-model-pretraining.png)
 
-来源：Lecture 9，PDF P15。
-
 ### 2.2 自监督目标为何可规模化
-
-来源：P2–3、P15、P23。
 
 预训练的关键是处理大规模、多样文本，尽量不依赖难以扩展的人工标签，并按计算资源规划模型和数据。标签由文本自身构造，因此常称**自监督学习（Self-supervised Learning）**；课件也以“unsupervised”描述其不使用人工任务标签。
 
 预训练可以得到三类产物：更有用的语言表示、下游优化的参数初始化，以及可用于抽样生成的语言概率分布。三者相关，但不同架构与目标的自然用途不同。
 
 ### 2.3 Pretrain → Finetune的优化视角
-
-来源：P24–25。
 
 $$
 \theta_{\mathrm{pre}}\approx\arg\min_\theta L_{\mathrm{pre}}(\theta),\qquad
@@ -80,21 +66,15 @@ $$
 
 ![先在大量文本上预训练再适配下游任务](figures/lecture09/pretrain-finetune.png)
 
-来源：Lecture 9，PDF P24。
-
 课件给出的解释包括：微调SGD可能停留在预训练参数附近，附近的解更易泛化，或附近的梯度更适合优化。这些是理解收益的可能机制，而非保证微调参数永远不远离初态。**“Pretrain once, finetune many times”**概括了昂贵预训练可被多个下游任务复用的价值。
 
 ### 2.4 数据来源也是模型设计的一部分
 
-来源：P26–28。
-
 课件列BookCorpus、英文Wikipedia、Common Crawl、WebText及书籍数据等来源，较新商业模型的细节可能不披露。图中表格文本排列有损，不据此硬配每一行完整训练集。BERT与GPT-1的明确资料分别见后文可读参数页。
 
-BookCorpus涉及网上抓取电子书；P27–28讨论授权、合理使用及其他争议。能够下载的文本不自动等于允许任意使用；数据来源影响覆盖范围、偏差和权利风险。
+BookCorpus涉及网上抓取电子书；讨论授权、合理使用及其他争议。能够下载的文本不自动等于允许任意使用；数据来源影响覆盖范围、偏差和权利风险。
 
 ## 3. 三种架构，对应不同预训练目标
-
-来源：P30–31、P40、P45、P64，重复比较表合并。
 
 | 架构 | 信息访问 | 典型目标 | 自然用途 |
 | --- | --- | --- | --- |
@@ -109,8 +89,6 @@ BookCorpus涉及网上抓取电子书；P27–28讨论授权、合理使用及�
 ## 4. BERT：双向编码与Masked LM
 
 ### 4.1 遮蔽语言建模目标
-
-来源：P32–33。
 
 **遮蔽语言模型（Masked Language Model, MLM）**随机选择位置集合$M$，将原序列$x$扰动为$\tilde x$，用双向编码器预测这些位置原本的Token：
 
@@ -137,13 +115,9 @@ $$
 
 ![BERT选定预测位置后的MASK随机替换及保留策略](figures/lecture09/bert-masking.png)
 
-来源：Lecture 9，PDF P33。
-
 微调任务通常没有`[MASK]`，混合策略减少模型只在特殊遮蔽输入上学习表示的倾向。保留Token的预测更容易，但它只占被选位置的小部分，不能因此把整个目标视为复制可见输入。
 
 ### 4.3 下一句预测与句对输入
-
-来源：P34；minBERT说明§3.1，P8–11。
 
 原始BERT还使用**下一句预测（Next Sentence Prediction, NSP）**：给两个文本块，判断第二块是否为第一块实际后续，或随机抽取。项目说明写明两类各50%。NSP是原始预训练目标的一部分，不是必须先完成MLM再单独微调NSP；课件指出后续研究发现它并非必要。
 
@@ -155,11 +129,7 @@ $$
 
 ![BERT的两段输入及下一句预测任务](figures/lecture09/bert-sentence-pair.png)
 
-来源：Lecture 9，PDF P34。
-
 ### 4.4 原始规模与语料
-
-来源：P35。
 
 | 模型 | 编码层 | 隐藏宽度 | 注意力头 | 参数量 |
 | --- | ---: | ---: | ---: | ---: |
@@ -170,19 +140,13 @@ $$
 
 ### 4.5 下游任务与局限
 
-来源：P36–37。
-
 BERT微调广泛用于：QQP问题复述检测、QNLI问答转化的自然语言推断、SST-2情感分类、CoLA语言可接受性、STS-B语义相似度、MRPC复述检测、RTE推断。
 
 ![BERT在不同句级任务上的历史结果展示](figures/lecture09/bert-downstream.png)
 
-来源：Lecture 9，PDF P36。不可读取的表格分数不转录。
-
 编码器擅长使用全上下文表示输入，但填补`Iroh goes to [MASK] tasty tea`不等于具备自然逐词生成器；需要生成序列时，预训练解码器更直接。
 
 ### 4.6 RoBERTa与SpanBERT
-
-来源：P38–39。
 
 课件概括**RoBERTa**改进包括更久训练与移除NSP，强调在不改变Transformer编码器主体时，更多计算与数据仍可改善表示。
 
@@ -190,13 +154,9 @@ BERT微调广泛用于：QQP问题复述检测、QNLI问答转化的自然语言
 
 ![独立子词遮蔽与连续片段遮蔽的区别](figures/lecture09/spanbert.png)
 
-来源：Lecture 9，PDF P38。
-
 ## 5. T5：编码器—解码器去噪预训练
 
 ### 5.1 前缀条件化的语言建模
-
-来源：P41。
 
 一种目标把$x_{1:m}$交给双向编码器，只预测后缀$x_{m+1:T}$：
 
@@ -208,8 +168,6 @@ $$
 
 ### 5.2 Span Corruption与Sentinel
 
-来源：P42–43。
-
 **片段损坏／遮蔽（Span Corruption）**从输入中移除若干不同长度片段，用各不相同的**哨兵标记（Sentinel Tokens）**替代，解码器按标记顺序输出被移除内容。
 
 示意：原文`A B C D E F G`，移除`B C`与`F`，可构造编码输入`A <s1> D E <s2> G`，目标包含`<s1> B C <s2> F`等被移除片段；终止哨兵及结束符按具体格式处理。该序列仅说明机制，不冒称课件图的逐字转录。
@@ -220,25 +178,19 @@ $$
 
 ![T5用不同占位标记遮蔽片段并解码恢复](figures/lecture09/t5-span-corruption.png)
 
-来源：Lecture 9，PDF P42。
-
 输入扰动主要在预处理阶段完成，解码侧仍使用条件自回归损失。课件报告其比较中，编码器—解码器优于解码器，Span Corruption优于普通语言建模；这是特定实验结论，不泛化为所有任务。
 
 ### 5.3 参数中的知识访问
 
-来源：P44。
-
-T5可微调为问答器，回答来自NQ（Natural Questions）、WQ（WebQuestions）、TQA（TriviaQA）等开放域任务的问题，表现出从预训练参数中访问知识的能力。课件图列220M、770M、3B、11B规模，不转录不可读的各任务分数。
+T5可微调为问答器，回答来自NQ（Natural Questions）、WQ（WebQuestions）、TQA（TriviaQA）等开放域任务的问题，表现出从预训练参数中访问知识的能力。
 
 ![不同规模T5在开放域问答中的参数知识访问](figures/lecture09/t5-knowledge.png)
 
-来源：Lecture 9，PDF P44。回答由参数生成不等于实时检索到可核验文档，也不保证知识始终正确。
+回答由参数生成不等于实时检索到可核验文档，也不保证知识始终正确。
 
 ## 6. 解码器预训练：GPT与任务适配
 
 ### 6.1 自回归语言模型目标
-
-来源：P23、P45–47。
 
 $$
 P_\theta(x_{1:T})=\prod_{t=1}^{T}P_\theta(x_t\mid x_{<t}),\qquad
@@ -256,8 +208,6 @@ Transformer解码器用因果Mask避免看到未来，预训练后可直接采�
 
 ### 6.2 GPT-1与NLI格式
 
-来源：P48–50。
-
 原始GPT：12层、117M参数、隐藏宽度768、FFN宽度3072；BPE使用40,000次合并。BooksCorpus包含7,000多本独特书籍，连续长文本有助于提供长距离依赖训练信号。“合并次数”与最终词表大小不是同一个量。
 
 **自然语言推断（Natural Language Inference, NLI）**判断假设相对前提是蕴含、矛盾还是中立。课件给输入格式：
@@ -268,11 +218,9 @@ Transformer解码器用因果Mask避免看到未来，预训练后可直接采�
 
 ![GPT将NLI句对串接并在末尾特殊位置分类](figures/lecture09/gpt-nli-format.png)
 
-来源：Lecture 9，PDF P49；P50历史结果表不可读分数跳过。P48页脚的引用与标题不一致，模型介绍按页标题Radford等2018理解。
+页脚的引用与标题不一致，模型介绍按页标题Radford等2018理解。
 
 ### 6.3 GPT-2生成与GPT-3上下文学习
-
-来源：P51–55。
 
 课件用1.5B参数GPT-2及一段新闻续写展示更连贯的文本生成：人给出列车核材料失窃的提示，模型接着编写部门、声明和地名。它是模型样例，不是真实新闻或事实来源；语言连贯不能证明内容真实。
 
@@ -289,15 +237,13 @@ otter ->
 
 ![GPT通过同一上下文中的翻译示例识别任务](figures/lecture09/in-context-learning.png)
 
-来源：Lecture 9，PDF P54。P53对比T5最大11B与GPT-3的175B规模，P55重复ICL概念；不可读图示实验细节跳过。指令微调是下一讲主题。
+对比T5最大11B与GPT-3的175B规模，重复ICL概念；不可读图示实验细节跳过。指令微调是下一讲主题。
 
 ## 7. 缩放规律：参数、数据与算力一起选择
 
-来源：P56–59。
+**经验缩放规律（Empirical Scaling Laws）**帮助预测增加规模后困惑度／损失的变化，并用于选择模型大小、数据量及架构等。提出在给定预算下，训练更大但未充分收敛的模型有时有效；它是预算分配问题，不能只看某个模型是否“完全收敛”。
 
-**经验缩放规律（Empirical Scaling Laws）**帮助预测增加规模后困惑度／损失的变化，并用于选择模型大小、数据量及架构等。P57提出在给定预算下，训练更大但未充分收敛的模型有时有效；它是预算分配问题，不能只看某个模型是否“完全收敛”。
-
-P59给粗略成本关系：
+给粗略成本关系：
 
 $$
 C_{\mathrm{train}}\propto N_{\mathrm{params}}\times D_{\mathrm{tokens}}.
@@ -307,13 +253,11 @@ $$
 
 ![参数规模与训练数据配比影响计算效率](figures/lecture09/compute-allocation.png)
 
-来源：Lecture 9，PDF P59。图表未能读取的训练Token及性能数字不补入，避免从粗略比例推导出课件未给的精确最优公式。
+图表未能读取的训练Token及性能数字不补入，避免从粗略比例推导出课件未给的精确最优公式。
 
 ## 8. 预训练学到什么，又可能暴露什么
 
 ### 8.1 重建任务需要的能力
-
-来源：P16–22、P61；前面七页例子与P61解释合并。
 
 | 原例 | 需要利用的信息 |
 | --- | --- |
@@ -329,19 +273,13 @@ $$
 
 ### 8.2 记忆、版权、隐私与偏见
 
-来源：P62–63。
-
 模型可能记住受版权保护的文本，或网络中的半私密材料，如地址、邮箱；还可能学习并放大种族主义、性别歧视等偏见。统计学习不会自动区分应当泛化的语言规律与不应泄露／强化的内容。
 
 ![预训练资料中的隐私材料及社会偏见风险](figures/lecture09/data-risks.png)
 
-来源：Lecture 9，PDF P63。
-
-该页将“membership inference”与恢复训练数据放在一起讨论；术语应区分：**成员推断（Membership Inference）**判断样本是否参与过训练，**训练数据提取（Training-data Extraction）**尝试恢复具体内容。不能把两者直接等同。P62版权案例为图片独有内容，无法识读的具体引文不转录。
+该页将“membership inference”与恢复训练数据放在一起讨论；术语应区分：**成员推断（Membership Inference）**判断样本是否参与过训练，**训练数据提取（Training-data Extraction）**尝试恢复具体内容。不能把两者直接等同。
 
 ## 9. A4：通过预训练学习并访问出生地知识
-
-来源：A4 Part 3–4，PDF P4–9；只读`a4_spr24_student_code.zip`中的`src/dataset.py`、`run.py`、`models.py`、`utils.py`，未解压修改源资料。
 
 ### 9.1 实验问题与对照
 
@@ -407,7 +345,7 @@ A4 Part 4要求检查正确与错误答案：仅凭一条流畅出生地输出�
 
 ## 10. minBERT项目：预训练表示如何适配任务
 
-来源：`default-final-project-handout-minbert-spr2024-updated.pdf`，技术部分P3–5、P8–15、P17–23。代码包本地缺失，不声称运行实现。
+代码包本地缺失，不声称运行实现。
 
 ### 10.1 分词、输入和编码层
 
@@ -470,7 +408,7 @@ $$
 
 ### 10.5 SMART：控制扰动敏感性与过猛更新
 
-项目P20给监督损失与**平滑诱导正则（Smoothness-inducing Regularization）**：
+项目给监督损失与**平滑诱导正则（Smoothness-inducing Regularization）**：
 
 $$
 F(\theta)=L(\theta)+\lambda_sR_s(\theta),\qquad
@@ -493,7 +431,7 @@ $$
 
 ### 10.6 LoRA与DoRA：少量可训练参数
 
-项目P21–22列**低秩适配（Low-Rank Adaptation, LoRA）**：冻结预训练$W_0\in\mathbb R^{d\times k}$，用
+项目列**低秩适配（Low-Rank Adaptation, LoRA）**：冻结预训练$W_0\in\mathbb R^{d\times k}$，用
 
 $$
 W=W_0+BA,\qquad B\in\mathbb R^{d\times r},\quad A\in\mathbb R^{r\times k},\quad r\ll\min(d,k).
@@ -511,7 +449,7 @@ $\|V\|_c$是逐列范数形成的$1\times k$向量，广播到各行；$m$也是
 
 ### 10.7 Adam偏置修正与权重衰减的区别
 
-来源：项目§4.3，P14。与A2的简化Adam相比，这里加入零初始化矩估计的偏置修正：
+与A2的简化Adam相比，这里加入零初始化矩估计的偏置修正：
 
 $$
 m_t=\beta_1m_{t-1}+(1-\beta_1)g_t,\quad

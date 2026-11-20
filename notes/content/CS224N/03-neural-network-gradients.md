@@ -4,449 +4,490 @@ date: 2026-11-16
 lang: zh-cn
 ---
 
-> 整理状态：全讲可读取技术正文及A2相关题目已整理。图片公式无法直接转录的部分，依照随课 `gradient-notes.pdf` 核对并统一符号；无法读取的图像和代码截图保留原页，不做OCR。
+## 1. 神经网络的结构与训练
 
-## 1. 神经网络、激活与训练目标
+### 1.1 神经网络与层
 
-来源：PDF P3–11。P1–2封面与行政提示跳过，P10提纲不单独转录。
+**神经网络是一类由多个可学习的计算单元组合而成的模型，用于将输入映射为预测结果。** 单个计算单元称为神经元；在全连接前馈网络中，同一层的多个神经元接收上一层的输出，分别进行加权求和、加上偏置，再经过激活函数。
 
-一层神经网络由仿射变换（Affine Transformation）与逐元素非线性（Element-wise Nonlinearity）组成：
-
-$$
-z=Wx+b,\qquad h=f(z).
-$$
-
-多个这样的层反复组合表示；最后的线性分类器虽然相对于最终隐藏表示是线性的，整个网络相对于原始输入通常是非线性的。
-
-NER窗口模型将中心词与左右各两个词的向量拼接为 $x\in\mathbb R^{5d}$，用隐藏层计算地点类别的分数，再以Sigmoid变为二分类概率。输入词向量也是可训练参数，不只训练输出分类权重。
-
-### 1.1 非线性函数与梯度
-
-来源：P6–8。
-
-早期McCulloch–Pitts阈值单元（Threshold Unit）按输入是否越过阈值输出0或1；其输出几乎处处对输入没有变化，阈值处不连续，无法提供有用的常规梯度学习信号。
-
-![常见激活函数及其曲线](figures/lecture03/activation-functions.png)
-
-来源：Lecture 3，PDF P7。图中公式部分文本编码损坏；以下给出与课件函数名称相应的统一表达，原图保留。
-
-| 激活函数 | 定义或关系 | 课件说明 |
-| --- | --- | --- |
-| Logistic / Sigmoid | $\sigma(z)=1/(1+e^{-z})$ | 可用于输出概率，仍有使用场景 |
-| 双曲正切，tanh | $\tanh z=2\sigma(2z)-1$ | 是缩放平移的Sigmoid，范围为$[-1,1]$ |
-| Hard tanh | 将输入截断在$[-1,1]$ | 课件展示分段曲线 |
-| 整流线性单元，ReLU | $\max(z,0)$ | 训练快，正区间梯度传回直接；负区间存在死区 |
-| Leaky / Parametric ReLU | 负区间保留斜率的ReLU变体 | 缓解负区间死区；本页未固定斜率值 |
-| Swish | $z\sigma(z)$ | 课件列举的新激活函数 |
-| GELU | $z\Phi(z)$，$\Phi$为标准正态CDF | 课件列出近似$z\sigma(1.702z)$，常见于Transformer |
-
-课件建议普通深层网络可先尝试ReLU，也指出BERT、RoBERTa等Transformer使用GELU/Swish。该建议是本课程背景下的起点，不意味着所有结构和任务都必须用同一激活函数。
-
-若去掉非线性，多层仿射变换仍可合并为一次仿射变换，深度无法单独增加这种模型的函数类型。保留非线性才能表达更复杂的函数；这不等于任意给定的有限网络都能精确表示任意函数。
-
-### 1.2 为什么学习矩阵求导
-
-SGD更新为：
+一个神经元的计算为：
 
 $$
-\theta\leftarrow\theta-\alpha\nabla_\theta J(\theta).
+a_i=f\left(\sum_jW_{ij}x_j+b_i\right).
 $$
 
-计算梯度有两条途径：手工矩阵求导（Matrix Calculus）与反向传播（Backpropagation）。二者使用同一个链式法则；后者把过程组织成可复用中间结果的算法。
+$x_j$ 是输入的第 $j$ 个分量，$W_{ij}$ 是该分量到第 $i$ 个神经元的权重，$b_i$ 是偏置，$f$ 是激活函数，$a_i$ 是这个神经元的输出。权重和偏置由训练学习。
 
-逐坐标求偏导有助于建立直觉，但逐个参数独立推导或实现容易重复计算。向量化梯度（Vectorized Gradients）将整层的计算写成矩阵操作，能同时得到全部参数的梯度。
-
-## 2. 导数、梯度与Jacobian的布局
-
-来源：P12–16；核对 `gradient-notes.pdf` §2，PDF P1–2。P12没有可提取正文，不推断图中内容。
-
-### 2.1 从一个输入到多个输入
-
-标量函数 $f(x)=x^3$ 的导数为 $f'(x)=3x^2$，表示输入轻微变化时输出的局部变化率。P13例子中，在$x=1$附近导数为3，在$x=4$附近导数为48；这是局部近似，不是任意跨度都使用同一斜率。
-
-对于标量函数 $J:\mathbb R^n\to\mathbb R$，每个输入坐标都有偏导。后续采用**参数同形状约定（Shape Convention）**，把列向量参数的梯度写成列：
+将同一层的输出排列成向量，可以写成：
 
 $$
-\nabla_xJ=
-\begin{bmatrix}
+\mathbf{a}=f(\mathbf{W}\mathbf{x}+\mathbf{b}).
+$$
+
+这里 $f$ 对每个分量分别计算。非线性激活让网络能够表达比单次线性打分更复杂的输入关系。
+
+一个用于分类的前馈神经网络通常包含：
+
+- **输入层**：接收数值特征，例如按顺序拼接的词向量。
+- **隐藏层**：把输入变换成中间特征；可以有一层或多层，其输出不需要人工逐个标注。
+- **输出层**：把最终特征转换成任务所需的结果，例如各类别的预测概率。
+
+“前馈”表示计算从输入依次向输出进行，没有反馈回路。多个隐藏层将前一层的输出作为后一层的输入，逐层组合特征。
+
+### 1.2 分类预测与损失
+
+以地点分类器为例，将窗口中的词向量拼接成输入 $\mathbf{x}$，依次计算：
+
+$$
+\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}),\qquad s=\mathbf{u}^\top \mathbf{h},\qquad \hat p=\sigma(s).
+$$
+
+其中 $\mathbf{z}$ 是隐藏层激活之前的加权和，$\mathbf{h}$ 是隐藏表示，$s$ 是分类分数，$\hat p$ 是地点概率。$\mathbf{W},\mathbf{b},\mathbf{u}$ 都是可学习参数，输入中的词向量也可以参与训练。
+
+标签为 $y\in\{0,1\}$ 时，二分类交叉熵为：
+
+$$
+J=-y\log\hat p-(1-y)\log(1-\hat p).
+$$
+
+### 1.3 梯度与参数更新
+
+训练要调整参数，使模型在训练样本上的损失减小。将全部参数统称为 $\boldsymbol{\theta}$，梯度下降使用：
+
+$$
+\boldsymbol{\theta}\leftarrow\boldsymbol{\theta}-\alpha\nabla_{\boldsymbol{\theta}} J.
+$$
+
+本讲解决的是其中的**梯度计算**：从最后的损失出发，怎样得到每个权重、偏置和输入向量的梯度。手工矩阵求导用于理解和推导公式，反向传播则把这些求导步骤组织成高效算法。
+
+## 2. 导数、梯度与雅可比矩阵
+
+### 2.1 导数与梯度
+
+对于一个输入、一个输出的函数，导数描述输入微小变化时，输出怎样变化。例如 $f(x)=x^3$，有：
+
+$$
+f'(x)=3x^2,\qquad f(x+\Delta x)\approx f(x)+f'(x)\Delta x.
+$$
+
+在 $x=1$ 附近，输入增加 $0.01$，输出约增加 $3\times0.01=0.03$。这是当前位置的局部近似。
+
+损失通常有许多输入参数。偏导数 $\partial J/\partial x_i$ 描述其他分量固定时，改变第 $i$ 个分量对损失的影响。把这些偏导排列起来，就是**梯度**：
+
+$$
+\nabla_{\mathbf{x}}J=\begin{bmatrix}
 \partial J/\partial x_1\\\vdots\\\partial J/\partial x_n
-\end{bmatrix}\in\mathbb R^n.
+\end{bmatrix}.
 $$
 
-### 2.2 Jacobian：输出数乘输入数
+例如，$J(x_1,x_2)=x_1^2+3x_2$ 的梯度为 $(2x_1,3)^\top$。
 
-对 $f:\mathbb R^n\to\mathbb R^m$，**Jacobian矩阵（雅可比矩阵）**定义为：
+本笔记将向量写成列向量；标量损失对参数的梯度采用**与参数同形状的约定**：向量参数得到同长度的列梯度，矩阵参数得到相同行列数的梯度矩阵。这样才能逐项执行参数更新。
+
+### 2.2 雅可比矩阵
+
+神经网络的中间层通常输出一个向量。设 $\mathbf{a}=g(\mathbf{x})$，输入 $\mathbf{x}$ 有 $n$ 个分量，输出 $\mathbf{a}$ 有 $m$ 个分量。每个输出都可以对每个输入求偏导，将它们排成**雅可比矩阵（Jacobian）**：
 
 $$
-J_f(x)=\frac{\partial f}{\partial x}
-=\left[\frac{\partial f_i}{\partial x_j}\right]_{i,j}
+\frac{\partial \mathbf{a}}{\partial \mathbf{x}}
+=\left[\frac{\partial a_i}{\partial x_j}\right]
 \in\mathbb R^{m\times n}.
 $$
 
-行对应输出、列对应输入。标量输出的Jacobian是 $1\times n$ 行向量，等于上述列梯度的转置。它们包含同一组偏导，区别是排列方向；不要把“梯度一定是行”或“Jacobian一定与输入同形状”当成普遍规则。
-
-![Jacobian的输出与输入维度定义](figures/lecture03/jacobian.png)
-
-来源：Lecture 3，PDF P15。
-
-### 2.3 链式法则就是Jacobian相乘
-
-令 $y=f(x)\in\mathbb R^m$，$z=g(y)\in\mathbb R^r$，则：
+行对应输出，列对应输入。例如：
 
 $$
-\frac{\partial z}{\partial x}
-=\frac{\partial z}{\partial y}\frac{\partial y}{\partial x},
-\qquad(r\times n)=(r\times m)(m\times n).
+\mathbf{a}=\begin{bmatrix}x_1+2x_2\\x_1x_2\end{bmatrix},\qquad
+\frac{\partial \mathbf{a}}{\partial \mathbf{x}}
+=\begin{bmatrix}1&2\\x_2&x_1\end{bmatrix}.
 $$
 
-中间维度对应链式法则对中间变量求和。对标量损失$J$，若改用列梯度表示：
+第一行记录 $a_1$ 怎样受两个输入影响，第二行记录 $a_2$ 的变化。
+
+![雅可比矩阵的行对应输出，列对应输入](figures/lecture03/jacobian.png)
+
+标量损失也可以看作只有一个输出的函数，其雅可比矩阵是一行：
 
 $$
-\nabla_xJ=\left(\frac{\partial y}{\partial x}\right)^\top\nabla_yJ.
+\frac{\partial J}{\partial \mathbf{x}}=(\nabla_{\mathbf{x}}J)^\top.
 $$
 
-转置来自梯度布局变化，不是随意交换矩阵顺序。先定义布局，再检查乘法维度，可以避免大多数转置错误。
+它与列梯度包含相同的偏导，只是排列方向不同。后面用雅可比矩阵说明链式法则，实际参数更新仍使用同形状梯度。
 
-## 3. 常用局部Jacobian
+## 3. 链式法则与局部求导
 
-来源：P17–25；对照 `gradient-notes.pdf` §3，PDF P2–4。动画页合并为以下结论，不能从文本层确认的原图细节不补写。
+### 3.1 复合函数的链式法则
 
-### 3.1 逐元素激活产生对角Jacobian
+设 $\mathbf{a}=g(\mathbf{x})$，最终损失为 $J(\mathbf{a})$。输入 $x_j$ 可能通过多个中间分量 $a_i$ 影响损失，因此要把各条路径的影响相加：
 
-若 $h_i=f(z_i)$，则$h_i$只依赖$z_i$：
+$$
+\frac{\partial J}{\partial x_j}
+=\sum_i\frac{\partial J}{\partial a_i}\frac{\partial a_i}{\partial x_j}.
+$$
+
+例如，$a_1=2x$、$a_2=3x$，$J=a_1+a_2$，则两条路径分别贡献 2 和 3，合计 $dJ/dx=5$。
+
+将各分量一起写成矩阵形式：
+
+$$
+\frac{\partial J}{\partial \mathbf{x}}
+=\frac{\partial J}{\partial \mathbf{a}}\frac{\partial \mathbf{a}}{\partial \mathbf{x}}.
+$$
+
+按列梯度表示，同一个关系为：
+
+$$
+\boxed{\nabla_{\mathbf{x}}J=\left(\frac{\partial \mathbf{a}}{\partial \mathbf{x}}\right)^\top\nabla_{\mathbf{a}}J}.
+$$
+
+右侧先使用“损失对中间变量的梯度”，再结合“中间变量对输入的局部导数”，得到输入梯度。转置来自列梯度的排列约定。
+
+### 3.2 逐元素激活
+
+若 $h_i=f(z_i)$，每个输出只依赖同位置的输入，因此：
 
 $$
 \frac{\partial h_i}{\partial z_j}
-=\begin{cases}f'(z_i),&i=j,\\0,&i\ne j,\end{cases}
-\qquad
-\frac{\partial h}{\partial z}=\operatorname{diag}(f'(z)).
+=\begin{cases}f'(z_i),&i=j,\\0,&i\ne j.\end{cases}
 $$
 
-与对角矩阵相乘等价于逐元素相乘（Hadamard Product）：
+雅可比矩阵只有对角线非零。反向计算可以直接写成：
 
 $$
-\nabla_zJ=\nabla_hJ\odot f'(z).
+\boxed{\nabla_{\mathbf{z}}J=\nabla_{\mathbf{h}}J\odot f'(\mathbf{z})}.
 $$
 
-不用显式构造$n\times n$对角矩阵。Sigmoid导数可写为$\sigma(z)(1-\sigma(z))$；tanh导数为$1-\tanh^2z$，都能复用前向激活值。
+$\odot$ 表示逐元素乘法。例如，上游梯度是 $(2,3)^\top$，局部导数是 $(0.5,0.1)^\top$，传回的梯度就是 $(1,0.3)^\top$，不需要真的构造对角矩阵。
 
-### 3.2 线性变换、恒等与点积
+![逐元素激活及常见激活函数](figures/lecture03/activation-functions.png)
 
-| 函数 | Jacobian | 列梯度视角下的反向传播 |
+常用激活函数及其局部导数为：
+
+| 函数 | 定义 | 导数 |
 | --- | --- | --- |
-| $z=Wx$ | $\partial z/\partial x=W$ | $\nabla_xJ=W^\top\nabla_zJ$ |
-| $z=x$ | $I$ | 梯度原样传回 |
-| $z=x+b$，对$b$求导 | $I$ | $\nabla_bJ=\nabla_zJ$ |
-| $s=u^\top h$，对$h$求导 | $u^\top$ | $\nabla_hs=u$ |
+| Sigmoid | $\sigma(z)=1/(1+e^{-z})$ | $\sigma(z)(1-\sigma(z))$ |
+| tanh | $\tanh z$ | $1-\tanh^2z$ |
+| ReLU | $\max(0,z)$ | 正区间为 1，负区间为 0 |
 
-随课讲义也列出行向量形式$z=xW$，其关于行向量$x$的Jacobian为$W^\top$。使用哪一条公式取决于原函数的定义，不能只记“矩阵乘法求导要不要转置”。
+ReLU 在零点不可微，实现中常将该点的反向导数取 0。Sigmoid 和 tanh 的导数可以直接复用前向输出。
 
-## 4. 手工求窗口网络的梯度
+激活函数不仅改变模型能表达的函数，也改变梯度如何传递。阈值函数直接输出 0 或 1，几乎处处导数为零，不适合常规梯度训练。ReLU 在正区间保留梯度，但负区间梯度为零；Leaky ReLU 在负区间保留小斜率。Hard tanh 将输入截断到 $[-1,1]$，区间外梯度为零。
 
-来源：P26–47；对照 `gradient-notes.pdf` §3–4 的恒等式和布局约定。课件此处为简化推导，先对**分数（Score）**求导，而不是直接对最终损失求导。
+Swish 和 GELU 使用平滑的门控形式，分别为 $z\sigma(z)$ 和 $z\Phi(z)$，其中 $\Phi$ 是标准正态分布的累积分布函数。不同激活函数会形成不同的局部梯度。
 
-### 4.1 拆分计算并写清维度
+### 3.3 加权求和、偏置与点积
 
-统一使用列向量，设输入维度为$n$、隐藏宽度为$m$：
-
-$$
-x\in\mathbb R^n,\quad W\in\mathbb R^{m\times n},\quad b,u\in\mathbb R^m,
-$$
+对 $\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b}$，第 $i$ 个输出为：
 
 $$
-z=Wx+b,\qquad h=f(z),\qquad s=u^\top h\in\mathbb R.
+z_i=\sum_jW_{ij}x_j+b_i.
 $$
 
-分开写$z,h,s$使每一步都只包含简单操作。NER例子中$n=5d$；不能因为隐藏层和输入恰巧设成同一维，就忽略乘法方向。
-
-### 4.2 用链式法则得到输入梯度
-
-Jacobian布局下：
+所以 $\partial z_i/\partial x_j=W_{ij}$，雅可比矩阵就是 $\mathbf{W}$。若已知损失对 $\mathbf{z}$ 的梯度 $\mathbf{g}_z=\nabla_{\mathbf{z}}J$，则：
 
 $$
-\frac{\partial s}{\partial x}
-=\frac{\partial s}{\partial h}\frac{\partial h}{\partial z}\frac{\partial z}{\partial x}
-=u^\top\operatorname{diag}(f'(z))W.
+\nabla_{\mathbf{x}}J=\mathbf{W}^\top\mathbf{g}_z,\qquad \nabla_{\mathbf{b}}J=\mathbf{g}_z.
 $$
 
-输出是$1\times n$。按参数同形状约定，将其转置：
+偏置只加到对应输出上，局部导数为 1，因此直接接收该位置的梯度。
+
+对于点积 $s=\mathbf{u}^\top \mathbf{h}=\sum_i u_ih_i$，有：
 
 $$
-\nabla_xs=W^\top\bigl(u\odot f'(z)\bigr).
+\nabla_{\mathbf{h}}s=\mathbf{u},\qquad \nabla_{\mathbf{u}}s=\mathbf{h}.
 $$
 
-![窗口网络通过链式法则与Hadamard积求导](figures/lecture03/chain-rule-score.png)
+每种操作只需掌握自己的局部规则，就可以沿网络逐步应用链式法则。
 
-来源：Lecture 3，PDF P37；P28–37依次展开变量拆分、链式法则和各局部Jacobian。
+## 4. 单隐藏层分类网络的梯度推导
 
-### 4.3 误差信号复用
+### 4.1 前向计算与求导目标
 
-定义传到预激活$z$处的**误差信号／上游梯度（Error Signal / Upstream Gradient）**：
-
-$$
-\delta=\nabla_zs=u\odot f'(z)\in\mathbb R^m.
-$$
-
-于是：
+地点分类网络先计算分数 $s$，再将它转换为概率。这里先按课件推导**分数 $s$ 对各参数和输入的梯度**。设输入为 $n$ 维，隐藏层有 $m$ 个单元：
 
 $$
-\nabla_bs=\delta,\qquad \nabla_xs=W^\top\delta,\qquad \nabla_us=h.
+\mathbf{x}\in\mathbb R^n,\quad \mathbf{W}\in\mathbb R^{m\times n},\quad \mathbf{b},\mathbf{u}\in\mathbb R^m,
 $$
 
-计算关于$b$、$W$和$x$的导数都会用到同一个$\delta$。缓存它一次，而不是每条求导链重新计算，就是反向传播复用中间结果的关键。
-
-### 4.4 矩阵参数的梯度为何是外积
-
-按参数同形状约定，$\nabla_Ws$应为$m\times n$，而不是把全部权重展平后的$1\times mn$行向量。
-
-单个权重$W_{ij}$只直接影响$z_i$，且：
-
 $$
-\frac{\partial z_k}{\partial W_{ij}}
-=\begin{cases}x_j,&k=i,\\0,&k\ne i.\end{cases}
+\mathbf{z}=\mathbf{W}\mathbf{x}+\mathbf{b},\qquad \mathbf{h}=f(\mathbf{z}),\qquad s=\mathbf{u}^\top\mathbf{h}.
 $$
 
-因此：
+求导顺序与计算顺序相反：从 $s$ 出发，经过 $\mathbf{h}$、$\mathbf{z}$，再传到权重、偏置和输入。
+
+### 4.2 从分数传回隐藏层
+
+由 $s=\sum_i u_i h_i$，得到：
 
 $$
-\frac{\partial s}{\partial W_{ij}}=\delta_i x_j,\qquad
-\boxed{\nabla_Ws=\delta x^\top}.
+\nabla_{\mathbf{u}}s=\mathbf{h},\qquad \nabla_{\mathbf{h}}s=\mathbf{u}.
 $$
 
-这是**外积（Outer Product）**：每个输出单元的误差信号乘上每个输入分量。它与向量点积不同，产生整个矩阵。形状为$(m\times1)(1\times n)=m\times n$，与$W$一致。
-
-![矩阵权重梯度的上游误差与局部输入](figures/lecture03/weight-gradient.png)
-
-来源：Lecture 3，PDF P43；P41–47讨论输出布局、转置和单权重推导。
-
-### 4.5 从分数梯度接到真实损失
-
-以上为$s$的梯度。如果真实损失为$J(s)$，再乘$\partial J/\partial s$，即：
+每个隐藏单元满足 $h_i=f(z_i)$，因此：
 
 $$
-\delta_J=\nabla_zJ=\frac{\partial J}{\partial s}\bigl(u\odot f'(z)\bigr).
+\frac{\partial s}{\partial z_i}=u_i f'(z_i).
 $$
 
-把上面的$\delta$替换为$\delta_J$，即可求$\nabla_WJ$、$\nabla_bJ$、$\nabla_xJ$；$\nabla_uJ=(\partial J/\partial s)h$。不要把“为了展示而求的分数梯度”直接作为最小化分类损失的梯度。
+将这些偏导排成向量，记为 $\boldsymbol{\delta}$：
 
-P46–47强调两种合法求导方式：先按Jacobian布局相乘，最后转成参数形状；或始终按参数同形状约定推导。最终作业答案要求梯度与被求导参数的形状一致。
+$$
+\boxed{\boldsymbol{\delta}=\nabla_{\mathbf{z}}s=\mathbf{u}\odot f'(\mathbf{z})}.
+$$
+
+$\delta_i$ 表示第 $i$ 个隐藏单元的加权和 $z_i$ 改变时，分数 $s$ 怎样变化。它会用于计算隐藏层权重、偏置和输入的梯度。
+
+![沿点积、激活和线性变换应用链式法则](figures/lecture03/chain-rule-score.png)
+
+### 4.3 权重、偏置与输入梯度
+
+单个权重 $W_{ij}$ 只直接影响 $z_i$，且 $\partial z_i/\partial W_{ij}=x_j$。因此：
+
+$$
+\frac{\partial s}{\partial W_{ij}}=\delta_i x_j.
+$$
+
+将每个权重的偏导排列成矩阵：
+
+$$
+\boxed{\nabla_{\mathbf{W}}s=\boldsymbol{\delta}\mathbf{x}^\top}.
+$$
+
+这是外积：$m$ 维列向量乘 $n$ 维行向量，得到 $m\times n$ 的矩阵，与 $\mathbf{W}$ 同形状。例如：
+
+$$
+\boldsymbol{\delta}=\begin{bmatrix}2\\-1\end{bmatrix},\quad
+\mathbf{x}=\begin{bmatrix}3\\4\\5\end{bmatrix}
+\quad\Longrightarrow\quad
+\boldsymbol{\delta}\mathbf{x}^\top=\begin{bmatrix}6&8&10\\-3&-4&-5\end{bmatrix}.
+$$
+
+每一行使用对应的 $\delta_i$，乘以输入的各个分量。
+
+![权重梯度由误差信号与局部输入组成](figures/lecture03/weight-gradient.png)
+
+偏置和输入梯度为：
+
+$$
+\boxed{\nabla_{\mathbf{b}}s=\boldsymbol{\delta}},\qquad
+\boxed{\nabla_{\mathbf{x}}s=\mathbf{W}^\top\boldsymbol{\delta}}.
+$$
+
+若 $\mathbf{x}$ 由五个词向量拼接而成，就将 $\nabla_{\mathbf{x}}s$ 按同样位置切成五段，分别传给对应词向量。同一个词出现多次时，各段梯度需要累加到同一份词向量参数上。
+
+### 4.4 从分数梯度得到损失梯度
+
+训练时要减小的是损失 $J$。对于 $\hat p=\sigma(s)$ 和二分类交叉熵，有：
+
+$$
+\frac{\partial J}{\partial s}=\hat p-y.
+$$
+
+因此，前面算出的每个分数梯度都要乘以这个因子，才得到训练使用的损失梯度。例如：
+
+$$
+\nabla_{\mathbf{W}}J=(\hat p-y)\boldsymbol{\delta}\mathbf{x}^\top,\qquad
+\nabla_{\mathbf{u}}J=(\hat p-y)\mathbf{h}.
+$$
+
+若真实标签为地点，$y=1$，而预测概率只有 $0.2$，则 $\hat p-y=-0.8$，梯度下降会推动分数增加。
+
+各步都使用前向计算时的参数和中间值，全部梯度算完后再更新参数。$\boldsymbol{\delta}$ 及其他中间梯度可以重复使用，不必为每个参数重新计算整条求导链。
 
 ## 5. 计算图与反向传播
 
-### 5.1 前向计算与逆向传梯度
+### 5.1 计算图与局部导数
 
-来源：P48–58。
+**计算图**用节点记录输入、参数和中间结果，用连接关系表示哪些量参与了后续计算。每个操作只需处理自己的输入与输出。
 
-**计算图（Computation Graph）**把复杂函数拆成节点与边：源节点（Source Nodes）保存输入或参数，内部节点（Interior Nodes）执行加法、乘法、激活等操作，边传递操作结果。
+**前向传播**按依赖顺序计算节点值。**反向传播**从最终标量损失开始，按相反顺序计算梯度，并复用已经得到的中间梯度。
 
-- **前向传播（Forward Propagation）**：沿依赖顺序计算各节点值，保存反向计算所需的输入、输出或其他中间结果。
-- **反向传播（Backpropagation）**：从最终标量输出出发，沿边反向传递导数，应用链式法则，把已计算的上游梯度用于较早节点。
+下图以标量操作 $h=f(z)$ 为例：输入 $z$ 经过当前节点得到 $h$，$h$ 再参与后续计算，得到最终分数 $s$。这里 $z,h,s$ 都是标量。
 
-对于一个标量节点 $y=f(x)$，若已知上游梯度 $\partial J/\partial y$，则：
+反向传播时，若后续计算已经传回 $\partial s/\partial h$，当前节点就利用链式法则计算：
 
 $$
-\underbrace{\frac{\partial J}{\partial x}}_{\text{downstream gradient}}
-=\underbrace{\frac{\partial J}{\partial y}}_{\text{upstream gradient}}
-\underbrace{\frac{\partial y}{\partial x}}_{\text{local gradient}}.
+\frac{\partial s}{\partial z}
+=\frac{\partial s}{\partial h}\frac{\partial h}{\partial z}.
 $$
 
-**局部梯度（Local Gradient）**只描述当前操作；**上游梯度（Upstream Gradient）**包含从最终目标到该节点的影响。不能只算局部导数而忘记乘上游信号。向量情形使用第2节的Jacobian乘法或转置后的列梯度规则。
+- **上游梯度 $\partial s/\partial h$**：从后续计算传回，表示当前输出 $h$ 的变化对最终分数 $s$ 的影响。
+- **局部导数 $\partial h/\partial z=f'(z)$**：由当前操作决定，表示输入 $z$ 的变化对输出 $h$ 的影响。
+- **传给输入的梯度 $\partial s/\partial z$**：前两者相乘的结果，图中称为 downstream gradient，位于输入侧。
 
-![单节点中上游梯度乘局部梯度得到下游梯度](figures/lecture03/local-backprop.png)
+![标量节点的反向传播：上游梯度ds/dh乘局部导数dh/dz，得到输入侧梯度ds/dz](figures/lecture03/local-backprop.png)
 
-来源：Lecture 3，PDF P56；P53–56逐步引入上游、局部、下游梯度。多个输入的节点需要对每个输入分别计算局部梯度，再各自传回。
+图中的“上游、下游”按反向传播的梯度传递方向命名：梯度从输出侧传入当前节点，再向输入侧传出。
 
-### 5.2 三类节点的直觉
+例如，$h=2z$，局部导数为 2。若上游梯度 $\partial s/\partial h=3$，则传给输入的梯度 $\partial s/\partial z=3\times2=6$。若最终求导目标是损失 $J$，就把公式中的 $s$ 换成 $J$；操作有多个输入时，对每个输入分别应用链式法则。
 
-来源：P59–69、P72–74。P59–69为同一例子的前向值、局部梯度和反向信号的动画增量；文本层不能完整恢复所有节点标签，保留最终图，不凭残缺文字重造数值例子。
+### 5.2 加法、乘法与最大值节点的反向计算
 
-![计算图例子的前向与反向传播原页](figures/lecture03/worked-graph.png)
+考虑函数：
 
-来源：Lecture 3，PDF P69。
+$$
+a=x+y,\qquad b=\max(y,z),\qquad J=ab.
+$$
 
-设传到输出$z$的标量梯度为$g=\partial J/\partial z$：
+令 $x=1$、$y=2$、$z=0$，前向计算得到 $a=3$、$b=2$、$J=6$。
 
-| 节点 | 局部导数 | 反向传播直觉 |
+从最终输出开始，$\partial J/\partial J=1$。乘法节点 $J=ab$ 先把梯度传给两个输入：
+
+$$
+\frac{\partial J}{\partial a}=b=2,\qquad
+\frac{\partial J}{\partial b}=a=3.
+$$
+
+再分别处理两条分支：
+
+| 操作 | 收到的上游梯度 | 传回输入的梯度 |
+| --- | ---: | --- |
+| $a=x+y$ | 2 | 对 $x$ 贡献 2，对 $y$ 贡献 2 |
+| $b=\max(y,z)$，且 $y>z$ | 3 | 对 $y$ 贡献 3，对 $z$ 贡献 0 |
+
+$y$ 同时用于加法和最大值操作，两条路径的梯度相加，最终得到：
+
+$$
+\boxed{\frac{\partial J}{\partial x}=2,\qquad
+\frac{\partial J}{\partial y}=2+3=5,\qquad
+\frac{\partial J}{\partial z}=0}.
+$$
+
+这个例子体现了三类局部规则：加法将上游梯度原样传给每个加数；乘法让每个输入的梯度乘上另一个输入值；最大值将梯度传给较大的输入。最大值相等时需要另行约定反向规则。
+
+### 5.3 共享变量的梯度累加
+
+一个变量可能通过多条路径影响损失。反向传播必须把所有路径的贡献相加，而不是用后到的梯度覆盖先到的梯度。
+
+上例中只计算加法路径会误得到 $\partial J/\partial y=2$，只计算最大值路径则得到 3；完整答案是 5。共享词向量和重复使用的权重遵循同一规则。
+
+![共享节点接收各条分支的梯度并求和](figures/lecture03/branch-gradients.png)
+
+### 5.4 反向传播算法
+
+计算图必须先算输入、再算依赖这些输入的输出。这种依赖顺序称为**拓扑顺序**。反向传播使用逆拓扑顺序，确保一个节点传回梯度之前，已经收齐全部后续路径的梯度。
+
+> **算法 1：计算图上的反向传播**
+>
+> **输入**：由可求导操作组成的有向无环计算图，以及当前输入和参数值。
+>
+> **输出**：标量损失 $J$ 对各输入和参数的梯度。
+>
+> 1. **前向计算**：按拓扑顺序计算各节点值，保存反向计算所需的中间值。
+> 2. **初始化**：将各节点的梯度设为 0，将最终损失节点的梯度设为 1。
+> 3. **反向遍历**：按逆拓扑顺序处理每个操作节点：
+>    1. 读取该节点输出处已经累加好的梯度。
+>    2. 根据局部导数，计算传给各输入的梯度。
+>    3. 将结果累加到对应输入的梯度中。
+> 4. **返回**：输入与参数节点上累加得到的梯度。
+
+输出处初始化为 1，是因为 $\partial J/\partial J=1$。反向传播只负责计算梯度，之后才由梯度下降等优化器更新参数。
+
+它不为每个参数重新走一遍完整求导链，而是一次反向遍历共同求出所有梯度。对常见神经网络操作，反向与前向的计算成本通常是同一量级。
+
+## 6. 自动微分与实现
+
+**自动微分**根据程序执行的操作及其局部求导规则，自动组织导数计算。深度学习框架通常用反向模式自动微分完成反向传播。
+
+每种操作需要提供两部分：
+
+| 接口 | 接收什么 | 完成什么 |
 | --- | --- | --- |
-| $z=a+b$ | $\partial z/\partial a=\partial z/\partial b=1$ | 加法把上游梯度分发给每个加数，二者都收到$g$ |
-| $z=ab$ | $\partial z/\partial a=b$，$\partial z/\partial b=a$ | 乘法交换两个局部输入作为缩放系数，分别传回$gb$、$ga$ |
-| $z=\max(a,b)$，且$a>b$ | 对$a$导数为1，对$b$为0 | 最大值节点把梯度路由给获胜输入，其余为0 |
+| forward | 当前输入 | 计算输出，保存必要的中间值 |
+| backward | 输出处的梯度 | 计算并返回各输入的梯度 |
 
-“交换（Switches）”不是交换参数或上游梯度，而是每个输入梯度乘上另一个输入值。最大值相等处不可用上述唯一赢家公式给出普通导数；具体实现需要约定，此页未展开并列时的处理。
+例如，乘法 $a=xy$ 的前向过程保存 $x,y$；反向收到梯度 $g$ 后，分别返回 $gy$ 和 $gx$。Sigmoid 的反向可以保存前向输出 $a$，再返回 $g\,a(1-a)$。
 
-### 5.3 分支必须累加
-
-来源：P70–71。
-
-同一个变量若被多个后续节点使用，每条路径都可能影响损失。对直接后继节点集合$\operatorname{succ}(x)$：
-
-$$
-\frac{\partial J}{\partial x}
-=\sum_{y\in\operatorname{succ}(x)}
-\frac{\partial J}{\partial y}\frac{\partial y}{\partial x}.
-$$
-
-因此反向传播中的操作通常是**累加（Accumulate）**，不是把新到的梯度覆盖旧值。这也解释了共享词向量、重复使用参数为何需要汇总所有使用位置的贡献。
-
-![计算图分支返回的梯度在共享节点相加](figures/lecture03/branch-gradients.png)
-
-来源：Lecture 3，PDF P71。
-
-### 5.4 一次反向遍历求全部梯度
-
-来源：P75–78。
-
-错误做法是分别从头计算每个参数的完整导数链，导致共享路径被反复求导。正确做法是一次逆向遍历，计算并复用各节点的梯度；这与手工推导中缓存$\delta$是同一个思想。
-
-对有向无环计算图（Directed Acyclic Computation Graph）及标量输出$J$：
-
-```text
-按拓扑顺序前向计算所有节点，保存必要中间结果
-将所有节点的梯度累加器初始化为0
-设置最终输出的梯度为1
-按逆拓扑顺序遍历节点y：
-    对y的每个输入节点x：
-        grad[x] += 由grad[y]与当前操作的局部导数得到的贡献
-```
-
-输出梯度初始化为1是因为$\partial J/\partial J=1$。逆拓扑顺序确保节点向输入传回梯度时，来自其全部后继的贡献已经到齐。
-
-![一般计算图的前向与反向算法](figures/lecture03/graph-algorithm.png)
-
-来源：Lecture 3，PDF P78。课件强调，正确实现时前向和反向具有相同量级的时间复杂度；这不表示每个操作的反向耗时与前向逐条完全相同。常见规则层结构可用矩阵和Jacobian高效组织，而不显式展开每个标量节点。
-
-## 6. 自动微分与forward/backward接口
-
-来源：P79–82。
-
-**自动微分（Automatic Differentiation）**由前向表达式中的操作规则推导梯度计算。每种操作需要知道：
-
-1. 如何从输入计算输出。
-2. 如何在给定输出梯度时，计算关于各输入的梯度贡献。
-
-框架依据计算图安排这些局部反向规则，完成整个网络的反向传播。它不是通过给每个参数加一个微小扰动来近似导数；数值差分是下一节独立的检查方法。
-
-![forward与backward操作接口原页](figures/lecture03/forward-backward-api.png)
-
-来源：Lecture 3，PDF P82。P80–82涉及实现及接口，但代码截图没有可读取文本；按用户要求保留原图，不猜测类名、字段或API细节。
-
-现代PyTorch等框架负责自动组织反向计算，但自定义层或新操作的作者仍需理解局部导数。前向应保存哪些值，由反向规则决定，例如乘法需要输入值，Sigmoid导数可以复用输出值。
+前向写出网络计算，框架记录依赖关系；反向调用这些局部规则并累加梯度。自动微分不需要逐个扰动参数，也不必把整个网络展开成一个巨大的解析表达式。
 
 ## 7. 数值梯度检查
 
-来源：P83。
+实现了反向规则之后，可以用另一种独立计算检查它：对一个参数作微小扰动，观察损失怎样变化。
 
-对标量函数$J(\theta)$，在第$i$个参数方向使用中心差分（Centered Finite Difference）：
-
-$$
-\frac{\partial J}{\partial\theta_i}
-\approx\frac{J(\theta+\varepsilon e_i)-J(\theta-\varepsilon e_i)}{2\varepsilon}.
-$$
-
-$e_i$为第$i$个单位坐标向量，课件给出的小步长量级为$10^{-4}$。这与手工推导或反向传播得到的解析梯度比较，用来发现实现错误。
-
-![数值梯度检查公式与使用场景](figures/lecture03/gradient-check.png)
-
-来源：Lecture 3，PDF P83。公式采用统一参数符号整理，原页保留。
-
-优点是容易独立实现，适合作为局部反向规则的参照；缺点是近似且很慢。若检查$P$个参数，中心差分约需$2P$次完整函数计算，而一次反向传播能共同求出这些参数的梯度。它适合检查实现，不能作为大型网络日常训练的梯度计算方式。
-
-步长有限会有近似误差，浮点计算也有舍入误差，所以数值梯度不是无限精确的“真值”。在max或ReLU的折点附近，普通导数可能不存在，差分与实现选用的局部规则也可能不同；比较时需要区分这种情况与实际链式法则错误。
-
-## 8. 随课讲义：完整一层分类网络的反向公式
-
-来源：`gradient-notes.pdf` §5，PDF P5–7。此节是对本讲矩阵求导与反向算法的整合，使用讲义给出的Softmax交叉熵模型，并非声称P59–69图中就是此网络。
-
-设输入维度为$D_x$，隐藏维度为$D_h$，类别数为$C$：
+固定其他参数，只改变第 $i$ 个参数 $\theta_i$。用中心差分近似其偏导：
 
 $$
-\begin{aligned}
-z&=Wx+b_1, &W&\in\mathbb R^{D_h\times D_x},\\
-h&=\operatorname{ReLU}(z), &b_1&\in\mathbb R^{D_h},\\
-\ell&=Uh+b_2, &U&\in\mathbb R^{C\times D_h},\\
-\hat y&=\operatorname{softmax}(\ell), &b_2&\in\mathbb R^C,\\
-J&=-\sum_{c=1}^{C}y_c\log\hat y_c.
-\end{aligned}
+g_i^{\mathrm{num}}=
+\frac{J(\boldsymbol{\theta}+\varepsilon \mathbf{e}_i)-J(\boldsymbol{\theta}-\varepsilon \mathbf{e}_i)}{2\varepsilon}.
 $$
 
-$y$为独热真实标签。按列梯度约定定义两层误差信号：
+$\mathbf{e}_i$ 是第 $i$ 个坐标为 1、其他坐标为 0 的单位向量；$\varepsilon$ 是小扰动，例如 $10^{-4}$。分子表示该参数正向和负向扰动后的损失差。
+
+对于第 5 节的例子，固定 $x=1,z=0$，在 $y=2$ 附近有 $J=(1+y)y$。中心差分为：
 
 $$
-\delta_{\ell}=\nabla_{\ell}J=\hat y-y,\qquad
-\delta_z=\nabla_zJ=(U^\top\delta_{\ell})\odot\mathbf1_{z>0}.
+\frac{(3+\varepsilon)(2+\varepsilon)-(3-\varepsilon)(2-\varepsilon)}{2\varepsilon}=5,
 $$
 
-这里采用讲义的ReLU零点导数取0的实现约定。所有参数与输入梯度为：
+与反向传播的结果一致。
+
+> **算法 2：检查一个参数的梯度**
+>
+> **输入**：损失函数、当前参数、待检查的坐标 $i$、扰动大小 $\varepsilon$。
+>
+> **输出**：数值梯度与反向传播梯度的比较结果。
+>
+> 1. 用反向传播计算当前参数的梯度，记录第 $i$ 个分量。
+> 2. 将 $\theta_i$ 增加 $\varepsilon$，计算损失 $J_+$。
+> 3. 将 $\theta_i$ 改为原值减去 $\varepsilon$，计算损失 $J_-$。
+> 4. 恢复原参数，用 $(J_+-J_-)/(2\varepsilon)$ 计算数值梯度。
+> 5. 比较两种结果，检查误差是否在容许范围内。
+
+检查时要固定输入和其他随机因素，让两次损失计算只因参数扰动而不同。ReLU 或最大值的折点处可能不存在普通导数，应避免用跨越折点的差分来判定实现是否正确。
+
+数值差分有截断和浮点舍入误差，$\varepsilon$ 不是越小越好。检查 $P$ 个参数大约需要 $2P$ 次前向计算，因此适合检查少量参数，不适合替代日常训练中的反向传播。
+
+## 8. 优化器与 Dropout
+
+梯度告诉我们当前位置的变化方向；优化器决定怎样利用它更新参数。Dropout 则改变训练时使用的隐藏表示。它们参与训练，但与反向传播的求导算法承担不同职责。
+
+### 8.1 动量与 Adam
+
+普通梯度下降直接使用本次梯度 $\mathbf{g}_t$。**动量**维护历史梯度的指数移动平均：
 
 $$
-\boxed{\nabla_UJ=\delta_{\ell}h^\top},\qquad
-\boxed{\nabla_{b_2}J=\delta_{\ell}},
+\mathbf{m}_t=\beta_1\mathbf{m}_{t-1}+(1-\beta_1)\mathbf{g}_t,\qquad
+\boldsymbol{\theta}_{t+1}=\boldsymbol{\theta}_t-\alpha \mathbf{m}_t.
+$$
+
+这里 $\mathbf{m}_0=0$，$0\le\beta_1<1$。持续同向的梯度会保留在平均值中，方向反复变化的梯度则部分抵消，从而平滑更新。
+
+Adam 在此基础上，还维护逐坐标的梯度平方平均：
+
+$$
+\mathbf{v}_t=\beta_2\mathbf{v}_{t-1}+(1-\beta_2)(\mathbf{g}_t\odot \mathbf{g}_t),\qquad \mathbf{v}_0=0.
+$$
+
+初期的平均值因零初始化而偏小，因此使用偏差修正：
+
+$$
+\hat{\mathbf{m}}_t=\frac{\mathbf{m}_t}{1-\beta_1^t},\qquad
+\hat{\mathbf{v}}_t=\frac{\mathbf{v}_t}{1-\beta_2^t},
 $$
 
 $$
-\boxed{\nabla_WJ=\delta_zx^\top},\qquad
-\boxed{\nabla_{b_1}J=\delta_z},\qquad
-\boxed{\nabla_xJ=W^\top\delta_z}.
+\boldsymbol{\theta}_{t+1}=\boldsymbol{\theta}_t-\alpha\frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t}+\epsilon}.
 $$
 
-先算输出误差，再算隐藏误差，两次外积得到权重梯度。$\delta_{\ell}$同时用于$U$、$b_2$和隐藏层，$\delta_z$同时用于$W$、$b_1$和输入，体现了共享中间计算。
+平方、开方和除法都按分量计算，$\epsilon$ 是防止除零的小常数。分子保留更新方向，分母根据各坐标的历史梯度尺度进行缩放。
 
-对窗口拼接输入，$\nabla_xJ$按原拼接位置切成对应词向量的梯度；若同一个词出现多次，切片贡献需要累加到同一词向量参数。梯度完成后才执行优化器更新，不应边反传边改动仍需使用的旧参数。
+### 8.2 Dropout 与训练时的缩放
 
-## 9. A2补充：优化器与Dropout
+**Dropout**在训练时随机将一部分隐藏单元输出置零，以减少模型对固定特征组合的依赖。设丢弃概率为 $p<1$，对每个分量抽取掩码 $d_i$：以概率 $1-p$ 取 1，以概率 $p$ 取 0。
 
-来源：A2 Part 2(a–b)，PDF P4。只整理作业明确提出的两种训练机制；依存分析器实现归入第4讲。
-
-### 9.1 动量与自适应缩放
-
-记小批量梯度为$g_t=\nabla_\theta J_{\mathrm{minibatch}}(\theta_t)$。作业首先使用**动量（Momentum）**：
+采用训练时缩放的形式：
 
 $$
-m_{t+1}=\beta_1m_t+(1-\beta_1)g_t,\qquad
-\theta_{t+1}=\theta_t-\alpha m_{t+1}.
+\tilde h_i=\frac{d_i h_i}{1-p}.
 $$
 
-指数移动平均（Exponential Moving Average）平滑各批次的噪声：反复同向的梯度会累积，方向交替的波动会部分抵消，因此更新通常不必随每个小批量剧烈摆动。它仍受当前和历史梯度影响，不保证每步全局损失单调下降。
-
-作业的简化Adam再维护逐元素梯度平方的平均：
+保留的输出除以保留概率，使每个分量的期望不变：
 
 $$
-v_{t+1}=\beta_2v_t+(1-\beta_2)(g_t\odot g_t),\qquad
-\theta_{t+1}=\theta_t-\alpha\frac{m_{t+1}}{\sqrt{v_{t+1}}}.
+\mathbb E[\tilde h_i\mid h_i]
+=\frac{(1-p)h_i}{1-p}=h_i.
 $$
 
-平方、开方、除法均逐元素。**在动量分子相同的条件下**，历史平方梯度较小的坐标得到较大的缩放更新；历史梯度较大的坐标被缩小，减轻不同参数梯度尺度差异的影响。不能只看分母就断言某坐标的实际更新一定更大，因为分子也不同。
+例如，$p=0.5$ 时，一个单元以一半概率输出 0，以一半概率输出 $2h_i$，平均仍为 $h_i$。反向传播使用本次前向计算的同一个掩码，被丢弃的分量在该处梯度为零。
 
-这严格对应作业为解释直觉而给出的简化式。作业脚注说明实际Adam有额外处理，故不能把这里省略偏差修正和数值稳定项的表达直接称为完整实现。作业示例取$\beta_1=0.9$、$\beta_2=0.99$，并非要求所有项目固定如此。
-
-### 9.2 Dropout的期望保持
-
-训练中每个隐藏单元以$p_{\mathrm{drop}}$概率被置零，掩码为$d_i\sim\operatorname{Bernoulli}(1-p_{\mathrm{drop}})$。作业定义：
-
-$$
-h_{\mathrm{drop}}=\gamma(d\odot h).
-$$
-
-要求给定$h$时每个分量的期望不变：
-
-$$
-\mathbb E[(h_{\mathrm{drop}})_i\mid h]
-=\gamma(1-p_{\mathrm{drop}})h_i=h_i,
-\qquad
-\boxed{\gamma=\frac1{1-p_{\mathrm{drop}}}}.
-$$
-
-要求$p_{\mathrm{drop}}<1$。训练时不断更换掩码，使模型不能持续依赖同一组隐藏单元，有助于缓解过拟合；评估时关闭随机丢弃，使用完整隐藏表示，得到确定的预测。因为训练已使用上述期望保持缩放，评估时不再重复乘这个因子。
-
-## 10. 本讲结论与来源
-
-来源：P84–85。
-
-反向传播是沿计算图递归应用链式法则，并复用上游梯度的高效算法。前向保存中间值，反向计算梯度；训练还需要优化器随后更新参数，二者不是同一步。
-
-框架能自动求导，仍需理解内部机制来调试错误、检查自定义层和分析训练问题。P85将梯度消失与爆炸作为后续讲次的例子，本讲不提前展开RNN相关推导。
-
-- 主课件：`slides/lecture03-neuralnets.pdf`，85页。P10提纲误写Lecture 4，但文件、标题及内容对应第3讲，按本地文件顺序整理。
-- 矩阵求导与完整网络公式：Kevin Clark，`readings/notes/gradient-notes.pdf`，7页。
-- 对应作业：`assignments/a2.pdf` Part 1要求向量化及参数同形状约定；Part 2(a–b)为Adam与Dropout。Part 1的Word2Vec具体梯度已在第1讲整理。
-- 无法读取的图像与代码截图保留原页，不做OCR，不虚构完整标签和数值。
+评估时关闭随机丢弃，直接使用完整的 $\mathbf{h}$，不再重复缩放。

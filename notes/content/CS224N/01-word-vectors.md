@@ -4,455 +4,438 @@ date: 2026-11-16
 lang: zh-cn
 ---
 
-> 整理状态：可读取的正文与相关作业已整理。P33–36 手写推导保留原图，公式依据随课讲义和A2确认；部分图片无法逐符号核对，按用户要求跳过，不再进行OCR。
+## 1. 词的数值表示
 
-## 1. 核心问题
+计算机不能直接对 `cat`、`dog` 这样的词做加法、求导或计算相似度。要让模型处理语言，首先需要把词转换成数值表示。
 
-来源：P2、P5。
-
-本讲的核心判断是：**词义可以用一个高维实数向量相当好地表示（Word meaning can be represented rather well by a high-dimensional vector of real numbers）**。
-
-课程先建立词向量、前馈网络、循环网络、Attention 等基础，再进入 Transformer、Encoder–Decoder、预训练（Pretraining）、后训练（Post-training）、高效适配和语言模型智能体。需要同时掌握三层内容：
-
-- 语言本身的结构，以及让计算机理解和生成语言的困难。
-- 模型的表示、目标函数、训练算法和计算机制。
-- 用 PyTorch 构建词义建模、依存句法分析、机器翻译、问答等系统。
-
-## 2. NLP 应用展示与基础模型
-
-来源：P10–16。
-
-- **神经机器翻译（Neural Machine Translation）**：P12 强调它是神经 NLP 较早取得显著成功的任务。
-- **自由文本问答（Free-text Question Answering）**：P13 以 Kendrick Lamar 首张专辑发行时间为例，介绍 YONO 使用经过多次问答微调的 T5-Large 运行整个问答流程。
-- **文本续写（Text Completion）**：P14 给出 GPT-2 在“装载受管制核材料的火车车厢失窃”提示下生成新闻式文本的例子。这里展示的是语言生成能力，生成文本中的人物、机构与事件不应当作事实材料。
-- **聊天与指令跟随（Chat / Instruction Following）**：P15 左侧展示把“为陪伴孩子旅行而请假”的非正式请求转成给上司的礼貌邮件，包含原因、请假时长和工作安排。
-- **视觉问答（Visual Question Answering）**：P15 右侧询问图像中的异常之处，GPT-4 的回答指出有人在行驶出租车车顶连接的熨衣板上熨衣服；这展示了将视觉内容与语言问题结合。
-- **文本条件图像示例（Text-Conditioned Image Example）**：P16 渲染页的 OCR 读到的是月夜繁忙街道、红发女子、披风、摊贩和蒸汽朋克电话等复杂场景提示。该页可提取文本层另含 DALL·E 2、金门大桥、火车和铅笔画提示，二者不一致，因此不能直接用文本层断言当前显示的图片内容。
-
-P10–11 的文字识别仍不足，P15–16 的具体图像内容仍需目视确认；此处将已识别文字与尚未确认画面区分记录。
-
-## 3. 如何表示词义
-
-### 3.1 指称语义与词汇资源
-
-来源：P17–19。
-
-**指称语义（Denotational Semantics）**把意义理解为符号和所指概念或事物之间的联系：
+一种最直接的方法是给每个词一个编号。例如，词表为：
 
 $$
-\text{signifier (symbol)}\longleftrightarrow\text{signified (idea or thing)}.
+V=\{\text{cat},\text{dog},\text{car},\text{bus}\}.
 $$
 
-例如 `tree` 是能指（Signifier），树这一概念或它指向的事物是所指（Signified）。课件先用字典定义说明“意义”可以是词语表达的思想、说话者试图表达的思想，或作品表达的思想。
+可以分别编号为 0、1、2、3。但编号只用于区分词：`dog` 的编号比 `cat` 大，并不表示它的词义“更大”；编号差为 1，也不能说明两个词相似。
 
-早期计算机处理词义的一种常见做法是采用 **WordNet**，人工组织：
+我们希望得到一种表示，使模型不仅能区分不同的词，还能利用词之间的联系。例如，`cat` 和 `dog` 都常出现在描述宠物的句子中；`car` 和 `bus` 都与交通有关。**词向量的目标，是把这些语言使用中的联系编码进可以计算的向量。**
 
-- **同义词集（Synsets）**：将特定词义下相关的词放在一起。一个词可能出现在多个词集，且词性不同。
-- **上位词关系（Hypernym / “is-a” Relation）**：以更一般的概念组织词汇层次，例如从具体动物逐步到哺乳动物、动物、实体等类别。
+### 1.1 独热向量：能区分词，却没有直接表达词间联系
 
-课件指出的局限：
+**词表（Vocabulary）**是模型处理的词的集合，记为 $V$，词的数量记为 $|V|$。
 
-1. **语义细微差别（Nuance）不足**：`proficient` 在部分上下文中可与 `good` 对应，但不能任意替换。
-2. 同义词列表可能包含冒犯性词，却没有充分表示语气、隐含意义和适用场合。
-3. 新词和旧词新义持续产生，人工资源难以及时更新；课件列举 `wicked`、`badass`、`wizard`、`ninja` 等。
-4. 资源具有主观性，需要人工建立和维护。
-5. 词汇关系的存在并不能直接给出可靠、连续的词相似度。
+向量用粗体小写字母（如 $\mathbf{v}$），矩阵用粗体大写字母（如 $\mathbf{U}$），分量和其他标量用普通字体（如 $v_i$）。
 
-### 3.2 独热表示为何不能表达语义相似性
-
-来源：P20–21。
-
-传统做法把词当作**离散符号（Discrete Symbols）**。词表大小为 $|V|$，每个词对应一个独热向量（One-hot Vector）：
-
-$$
-e_i\in\mathbb R^{|V|},\qquad
-(e_i)_j=\begin{cases}1,&j=i,\\0,&j\ne i.\end{cases}
-$$
-
-每个词只有自己的坐标为 1，因此又称**局部表示（Localist Representation）**。词表有五十万词，向量就有五十万维，绝大多数分量为零。
-
-对于不同的词 $i\ne j$：
-
-$$
-e_i^\top e_j=0,\qquad \|e_i\|_2=\|e_j\|_2=1.
-$$
-
-所以 `hotel` 与 `motel` 的向量正交，其他任何两个不同词也正交。表示只告诉模型“是否同一个词”，没有让近义词在向量空间中更接近。
-
-课件的检索例子是：查询 `Seattle motel` 时，希望匹配含 `Seattle hotel` 的文档。独热表示本身没有编码 `motel` 与 `hotel` 的联系；人工同义词表又有覆盖不足等问题。接下来的目标是：**让相似性编码在向量本身中（Learn to encode similarity in the vectors themselves）**。
-
-### 3.3 分布语义与上下文
-
-来源：P22。
-
-**分布语义（Distributional Semantics）**：一个词的意义由经常在附近出现的词刻画。
-
-> “You shall know a word by the company it keeps.” — J. R. Firth
->
-> 通过一个词经常与哪些词相伴，认识这个词。
-
-**上下文（Context）**是词出现位置附近、固定大小窗口内的词。不能只依靠一次出现，而要聚合语料中许多次出现的上下文。课件通过 `banking crises`、`banking regulation`、`banking system` 展示：这些共同上下文提供 `banking` 的表示信号。
-
-### 3.4 稠密分布式表示
-
-来源：P23–24。
-
-给每个词一个**稠密向量（Dense Vector）**，使出现在相似上下文中的词得到相似表示。课件使用点积（Dot / Scalar Product）衡量向量匹配程度：
-
-$$
-s(u,v)=u^\top v=\sum_{k=1}^{d}u_kv_k.
-$$
-
-**词向量（Word Vectors）**也称**词嵌入（Word Embeddings）**或**神经词表示（Neural Word Representations）**。它是**分布式表示（Distributed Representation）**：一个词由多个实数共同表示，而不是独占一个坐标。课件用 `banking`、`monetary` 的数值向量和词向量可视化说明这种表示。
-
-这里不要求每个坐标都对应一个可命名的人类概念；需要学习的是整个向量在模型中的作用与词之间的关系。
-
-![神经词向量的数值表示与词空间可视化](figures/lecture01/vector-visualization.png)
-
-来源：Lecture 1，PDF P24。该页将 `expect` 的数值向量与包含 `want`、`think`、`need` 等词的空间图并置。数值向量是模型的表示，低维图是帮助观察词之间关系的展示；不能由图中的两个坐标认定原向量只有两维。原图的具体投影方式未在本页正文中说明，不擅自标为 PCA 或 t-SNE。
-
-## 4. Word2Vec：用中心词预测外围词
-
-### 4.1 数据与预测任务
-
-来源：P25–27。
-
-**Word2Vec** 是学习词向量的一组方法；本讲展开的是 **Skip-gram**：给定中心词，预测附近的外围词。
-
-![Skip-gram从中心词经表示层预测多个上下文位置的结构](figures/lecture01/skipgram-architecture.png)
-
-来源：Lecture 1，PDF P25。结构图由输入词 $w(t)$ 经投影层（Projection）连接到多个输出位置 $w(t-2)$、$w(t-1)$、$w(t+1)$、$w(t+2)$。多个输出共享同一中心词的表示，训练信号来自不同外围词；输出位置不是按自回归顺序逐个生成的句子。
-
-设语料（Corpus）是词序列 $w_1,\ldots,w_T$，固定词表为 $V$，窗口半径为 $m$。在位置 $t$：
-
-- **中心词（Center Word）**为 $w_t$。
-- **外围词（Outside / Context Words）**为 $w_{t+j}$，其中 $-m\le j\le m$、$j\ne0$，且索引在语料范围内。
-- 对每个合法词对计算 $P(w_{t+j}\mid w_t;\theta)$。
-
-![窗口半径为2的中心词与外围词预测示意](figures/lecture01/context-window.png)
-
-来源：Lecture 1，PDF P26；P27 是相同窗口示意的后续展示，仍需核对图中动画增量。
-
-例子中中心词为 `banking`、$m=2$，外围词为 `turning`、`into`、`crises`、`as`；`problems` 在该窗口之外。一个中心位置会产生多个中心—外围训练词对。
-
-### 4.2 为什么每个词有两套向量
-
-来源：P29–31。
-
-对每个词 $w\in V$ 学习两套参数：
-
-- $v_w\in\mathbb R^d$：作为中心词时的向量。
-- $u_w\in\mathbb R^d$：作为外围词时的向量。
-
-同一个词在不同位置可以担任不同角色；使用哪套向量由预测中的角色决定。把所有向量拼为总参数向量：
-
-$$
-\theta=\begin{bmatrix}
-v_1\\\vdots\\v_{|V|}\\u_1\\\vdots\\u_{|V|}
-\end{bmatrix}\in\mathbb R^{2d|V|}.
-$$
-
-因此参数量是 $2d|V|$。本讲只确立双向量的参数化；选择两套向量的优化理由将在第 2 讲继续说明。
-
-### 4.3 Softmax 条件概率
-
-来源：P29–30。
-
-给定中心词 $c$，候选外围词 $o$ 的概率：
-
-$$
-P(o\mid c;\theta)
-=\frac{\exp(u_o^\top v_c)}{\sum_{w\in V}\exp(u_w^\top v_c)}.
-$$
-
-计算顺序：
-
-1. 用 $u_w^\top v_c$ 为每个候选词计算分数。
-2. 指数函数将任意实数分数变成正数。
-3. 除以对整个词表求和的分母，得到归一化分布。
-
-$$
-\sum_{o\in V}P(o\mid c;\theta)=1.
-$$
-
-对于有限实数分数且候选类别多于一个，概率严格位于 $(0,1)$。**Softmax** 的一般形式为：
-
-$$
-\operatorname{softmax}(z)_i=\frac{e^{z_i}}{\sum_{j=1}^{|V|}e^{z_j}}.
-$$
-
-“max” 表示较大分数获得较大概率，“soft” 表示其他候选仍保留概率；它返回整个分布，不是只返回最大值或最大值的索引。在其他候选分数不变时，提高 $u_o^\top v_c$ 会提高 $P(o\mid c)$。
-
-### 4.4 从似然到损失函数
-
-来源：P28–29、P32。
-
-课件将语料中所有窗口词对的预测概率相乘，作为**似然（Likelihood）**：
-
-$$
-L(\theta)=\prod_{t=1}^{T}
-\prod_{\substack{-m\le j\le m\\j\ne0\\1\le t+j\le T}}
-P(w_{t+j}\mid w_t;\theta).
-$$
-
-**目标函数（Objective Function）**采用按中心位置数 $T$ 归一化的**负对数似然（Negative Log-likelihood）**：
-
-$$
-J(\theta)=-\frac1T\log L(\theta)
-=-\frac1T\sum_{t=1}^{T}
-\sum_{\substack{-m\le j\le m\\j\ne0\\1\le t+j\le T}}
-\log P(w_{t+j}\mid w_t;\theta).
-$$
-
-这里将边界合法条件显式写出；课件的紧凑记法省略了边界处理。分母是 $T$，不要误写成已经按全部词对数量求平均。
-
-- 对数把概率连乘转成求和，便于求导和累计。
-- 负号把最大化似然转为最小化损失。
-- 真实外围词的预测概率越高，该词对的 $-\log P(o\mid c)$ 越小。
-
-单个词对的损失可代入 Softmax 写为：
-
-$$
-J_{c,o}=-\log P(o\mid c)
-=-u_o^\top v_c+\log\sum_{w\in V}\exp(u_w^\top v_c).
-$$
-
-这是对上式直接进行代数展开，不是新增训练目标。课件用“提高预测准确性”概括优化目的；数学上直接优化的是这些观测词对的对数概率，不是另一个分类准确率指标。
-
-## 5. Word2Vec 梯度：从对数概率到参数更新
-
-P33–36 为手写图片，OCR 只能辨认少数片段，无法可靠转录完整推导。以下公式依据随课材料 `cs224n_winter2023_lecture1_notes_draft.pdf` §3.4（PDF P10–11）交叉核对，并结合 A2 Part 1 的矩阵记法整理；四页原图保留在本节后半部分。尚未完成与每一处手写符号的视觉比对。
-
-### 5.1 点积的导数：逐坐标计算，再组成向量
-
-将向量视为列向量。对标量输出，梯度采用与参数相同的形状约定（Shape Convention）。
-
-$$
-u_o^\top v_c=\sum_{i=1}^{d}u_{o,i}v_{c,i},\qquad
-\frac{\partial(u_o^\top v_c)}{\partial v_{c,j}}=u_{o,j}.
-$$
-
-因为求关于 $v_{c,j}$ 的偏导时，只有和式中第 $j$ 项依赖它；其余项的导数为零。将各坐标导数堆叠：
-
-$$
-\nabla_{v_c}(u_o^\top v_c)=u_o\in\mathbb R^d.
-$$
-
-不要把 $v_c$ 的梯度写成行向量 $u_o^\top$；第3讲会进一步区分 Jacobian 的布局和参数梯度的形状。
-
-### 5.2 中心词向量的梯度
-
-先求对数概率，再转换为负对数损失，避免负号混淆。记归一化项为：
-
-$$
-Z_c=\sum_{w\in V}\exp(u_w^\top v_c).
-$$
-
-$$
-\log P(o\mid c)=u_o^\top v_c-\log Z_c.
-$$
-
-第一项求导得到 $u_o$。第二项应用链式法则（Chain Rule）：对数求导、求和求导、指数求导、点积求导：
+独热向量（One-hot Vector）为每个词分配一个坐标：属于该词的坐标为 1，其余坐标都为 0。上述词表对应：
 
 $$
 \begin{aligned}
-\nabla_{v_c}\log Z_c
-&=\frac1{Z_c}\nabla_{v_c}\sum_{w\in V}\exp(u_w^\top v_c)\\
-&=\frac1{Z_c}\sum_{w\in V}\exp(u_w^\top v_c)u_w\\
-&=\sum_{w\in V}P(w\mid c)u_w.
+\mathbf{e}_{\text{cat}}&=(1,0,0,0)^\top,\\
+\mathbf{e}_{\text{dog}}&=(0,1,0,0)^\top,\\
+\mathbf{e}_{\text{car}}&=(0,0,1,0)^\top,\\
+\mathbf{e}_{\text{bus}}&=(0,0,0,1)^\top.
 \end{aligned}
 $$
 
-因此对数概率的梯度是：
+这种表示不再引入编号的大小关系，但任意两个不同词的点积都是 0，欧氏距离都是 $\sqrt 2$。因此，单从这些向量看，`cat` 与 `dog` 的关系和 `cat` 与 `bus` 没有区别。
 
-$$
-\boxed{\nabla_{v_c}\log P(o\mid c)=u_o-\sum_{w\in V}P(w\mid c)u_w}.
-$$
+词表很大时，独热向量的维度也很大，而且只有一个非零元素。实现中通常直接存储词的编号，不必真的创建这么长的数组。**关键限制是独热表示本身没有编码相似性**；模型仍可以在它的基础上学习更有用的表示。
 
-课程讲义概括为 **“observed − expected”（观测值减期望值）**：观测到的外围词向量，减去模型当前分布下所有外围词向量的期望。
+### 1.2 人工词典及其局限
 
-训练最小化的是 $J_{c,o}=-\log P(o\mid c)$，所以其梯度符号相反：
+另一条路线是人工记录词义及其关系。例如，WordNet 用同义词集组织特定词义，并记录“猫是一种动物”这样的上下位关系。
 
-$$
-\boxed{\nabla_{v_c}J_{c,o}=\sum_{w\in V}P(w\mid c)u_w-u_o}.
-$$
+这类资源提供了有用知识，但需要人工维护，难以及时覆盖新词、新用法和语境差异。即使知道两个词属于相关类别，也还需要决定：怎样把这种关系转换成模型可用的数值，以及两个词究竟有多相似。
 
-一次梯度下降更新：
+词向量采用从文本中学习的方式：通过词实际出现的环境，学习词之间的联系。
 
-$$
-v_c\leftarrow v_c+\alpha\left(u_o-\mathbb E_{w\sim P(\cdot\mid c)}[u_w]\right).
-$$
+## 2. 从上下文学习词义
 
-更新使中心向量向实际观察到的外围向量靠近，并减去模型当前的平均预测方向。这里的“期望”是向量的概率加权平均，不是概率最大的那个词。
+### 2.1 分布假设：相似的使用环境提供相似的语义线索
 
-### 5.3 外围词向量与矩阵形式（A2 Part 1 补充）
-
-A2 将外围向量作为矩阵的列：
-
-$$
-U=[u_1,\ldots,u_{|V|}]\in\mathbb R^{d\times|V|},\quad
-z=U^\top v_c\in\mathbb R^{|V|},\quad
-\hat y=\operatorname{softmax}(z).
-$$
-
-注意课程讲义前文也使用过按行存储的记法；必须随矩阵定义调整转置，不能混用。真实外围词的标签为独热向量 $y$，$y_o=1$。于是：
-
-$$
-J_{c,o}=-\sum_{w\in V}y_w\log\hat y_w=-\log\hat y_o.
-$$
-
-这说明单词对的负对数似然等于真实独热分布与预测分布的**交叉熵（Cross-entropy）**。它不意味着整个语料中同一中心词的真实外围词分布是独热的；独热标签针对当前这一条词对样本。
-
-对任意外围向量：
-
-$$
-\nabla_{u_w}J_{c,o}=(\hat y_w-y_w)v_c
-=\begin{cases}(\hat y_o-1)v_c,&w=o,\\\hat y_wv_c,&w\ne o.\end{cases}
-$$
-
-矩阵形式为：
-
-$$
-\boxed{\nabla_{v_c}J_{c,o}=U(\hat y-y)},\qquad
-\boxed{\nabla_UJ_{c,o}=v_c(\hat y-y)^\top}.
-$$
-
-形状检查：$U(\hat y-y)$ 为 $d$ 维；外积 $v_c(\hat y-y)^\top$ 为 $d\times|V|$，分别与原参数一致。即使当前词对只有一个真实外围词，完整 Softmax 的分母仍依赖所有 $u_w$，所以其他外围词向量通常也有非零梯度。
-
-**零梯度条件（Zero-gradient Condition）**是 $U(\hat y-y)=0$，即误差向量属于 $U$ 的零空间（Null Space）。不能只回答“预测完全正确”：当列向量存在相关性时，不同概率误差可能在投影后抵消。有限分数、多个类别的 Softmax 本身也不会精确输出独热分布。
-
-整个窗口的梯度是窗口内各词对梯度之和；整个语料梯度再累加各中心位置，并保留目标函数中的 $1/T$ 系数。参数共享意味着同一个词的同一套向量被多次使用时，所有使用位置的梯度都要相加。
-
-### 5.4 A2 中的向量归一化问题
-
-来源：A2 Part 1(c)。词向量 $u$ 的 L2 归一化为 $\bar u=u/\|u\|_2$，要求 $u\ne0$。若 $u_x=\lambda u_y$ 且 $\lambda>0$，则：
-
-$$
-\frac{u_x}{\|u_x\|_2}=\frac{u_y}{\|u_y\|_2}.
-$$
-
-因此归一化保留方向、删除模长（Magnitude）。若短语分类把词向量求和，模长代表不同词对情感判断的权重，归一化会改变相互抵消的比例，可能丢失信息；若有用信息只在方向中，模长只是无关尺度，则这种删除不损害所需信号。
-
-### 5.5 原始推导图
-
-![词向量目标函数梯度推导原图，第33页](figures/lecture01/gradient-000.jpg)
-
-来源：Lecture 1，PDF P33。待视觉核对推导步骤。
-
-![词向量目标函数梯度推导原图，第34页](figures/lecture01/gradient-001.jpg)
-
-来源：Lecture 1，PDF P34。待视觉核对推导步骤。
-
-![词向量目标函数梯度推导原图，第35页](figures/lecture01/gradient-002.jpg)
-
-来源：Lecture 1，PDF P35。待视觉核对推导步骤。
-
-![词向量目标函数梯度推导原图，第36页](figures/lecture01/gradient-003.jpg)
-
-来源：Lecture 1，PDF P36。待视觉核对推导步骤。
-
-## 6. 用梯度下降训练参数
-
-来源：P31、P37–39。
-
-### 6.1 梯度下降
-
-**梯度下降（Gradient Descent）**在当前参数处计算损失对参数的梯度，再向负梯度方向走一小步：
-
-$$
-\theta\leftarrow\theta-\alpha\nabla_\theta J(\theta),
-$$
-
-其中 $\alpha>0$ 是**步长／学习率（Step Size / Learning Rate）**。单个参数的写法为：
-
-$$
-\theta_i\leftarrow\theta_i-\alpha\frac{\partial J}{\partial\theta_i}.
-$$
-
-梯度是所有参数偏导数组成的向量，不是只更新一个预先选中的坐标。对于非零梯度和足够小的步长，负梯度给出局部下降方向；步长过大则不能保证每次损失都下降。课件特别提醒：示意图中的凸碗形目标只是直观例子，实际神经网络目标可能**非凸（Non-convex）**。
-
-![梯度下降从随机初值沿损失曲面更新参数的示意](figures/lecture01/gradient-descent.png)
-
-来源：Lecture 1，PDF P37。图中的随机初值（Random Initial Value）、学习步骤（Learning Step）和最低点（Minimum）说明优化过程；不能据此推出一般神经网络训练一定达到全局最小值。
-
-P38 的印刷算法框经 OCR 确认采用“计算梯度 → 更新参数 → 重复”的结构。按上面的符号整理为：
+假设不知道 `banking` 是什么意思，但在文本中反复看到：
 
 ```text
-repeat:
-    g ← ∇θ J(θ)
-    θ ← θ − αg
+banking crises
+banking regulation
+banking system
 ```
 
-每次先在同一组旧参数处计算完整梯度，再更新参数。这里是算法步骤的规范化表达；OCR 未可靠识别原框中全部字符，不能视为逐字转录。
+周围的 `crises`、`regulation`、`system` 为它的含义提供了线索。一次出现提供的信息有限；聚合大量出现位置，才能获得比较稳定的统计规律。
 
-### 6.2 随机梯度下降与小批量
+**分布假设（Distributional Hypothesis）**认为，出现在相似上下文中的词往往具有相关的意义。基于这种思想研究词义的方式称为分布语义（Distributional Semantics）。
 
-完整 $J(\theta)$ 涉及整个语料的所有窗口；语料可能有数十亿个窗口。若每次更新前都计算全部梯度，一次更新就需要很长时间。
+这里的“分布”指词在语言环境中的出现规律。它不是说某个词义对应一个固定坐标，也不是说上下文相似就一定互为同义词。例如，`happy` 和 `sad` 都能出现在 `I feel ...` 中，使用环境相似，但情感方向相反。
 
-**随机梯度下降（Stochastic Gradient Descent, SGD）**反复抽样窗口，在局部样本上计算梯度并更新。**小批量梯度下降（Mini-batch Gradient Descent）**一次使用一批窗口，在更新频率和批量计算之间折中。
+### 2.2 上下文窗口
 
-用 $\mathcal B$ 表示抽取的中心位置批次，相应批次损失写为：
+本讲把某个词左右一定范围内的词作为它的**上下文（Context）**。窗口半径 $m$ 表示左右各取至多 $m$ 个词，中心词本身不计入上下文。
 
-$$
-J_{\mathcal B}(\theta)
-=-\frac1{|\mathcal B|}\sum_{t\in\mathcal B}
-\sum_{\substack{-m\le j\le m\\j\ne0\\1\le t+j\le T}}
-\log P(w_{t+j}\mid w_t;\theta).
-$$
+例如：
 
-$$
-\theta\leftarrow\theta-\alpha\nabla_\theta J_{\mathcal B}(\theta).
-$$
+![上下文窗口示例：banking为中心词，左右各两个词属于上下文，problems在窗口外](figures/lecture01/context-window-example.svg)
 
-此批次公式用于明确表达课件的窗口抽样方法。P39 的印刷算法框经 OCR 确认按窗口计算梯度并立即更新，可整理为：
+以 `banking` 为中心、$m=2$ 时，上下文是 `turning`、`into`、`crises`、`as`；`problems` 在窗口之外。
 
-```text
-repeat:
-    window ← sample_window(corpus)
-    g ← ∇θ Jwindow(θ)
-    θ ← θ − αg
-```
+窗口是构造训练数据的规则。它规定从文本中提取哪些词对，而不是模型已经理解的语法或语义关系。
 
-单窗口 SGD 使用当前窗口的全部中心—外围词对，并非每次都重新遍历整个语料。课件还标出 Mini-batch Gradient Descent，将单窗口换成一批窗口即可；没有在本页规定具体批大小、学习率调度或停止准则。
+### 2.3 稠密向量与分布式表示
 
-## 7. 与作业及词向量演示的衔接
-
-来源：P40、本地 A1 和 Gensim 演示。
-
-本讲结束后课件指向 Jupyter Notebook。相关材料不是额外的模型理论，而是观察已学习词向量的行为：
-
-- **A1 Part 1**：通过共现计数与 SVD 构造向量，观察上下文统计如何形成表示；具体算法归入第 2 讲。
-- **A1 Part 2**：用 GloVe 检查相似词、多义词、类比、异常类比与偏差；详细分析也归入第 2 讲，避免本讲提前展开未讲的方法。
-- **Gensim 2024 演示**：载入 `glove-wiki-gigaword-100`，查看词向量，使用 `most_similar` 查近邻和做正负向量组合；用 PCA 投影展示相近词群。
-
-### 7.1 A1 要观察的表示性质
-
-以下为 A1 Part 2 的题目目标与必要解释，不是课件新增实验结果，也没有把未运行的 Notebook 当成已获得结果。
-
-**余弦相似度（Cosine Similarity）**只比较非零向量的方向：
+给每个词分配一个 $d$ 维实数向量：
 
 $$
-\operatorname{cos}(p,q)=\frac{p^\top q}{\|p\|_2\|q\|_2}\in[-1,1],\qquad
-\operatorname{distance}_{\cos}(p,q)=1-\operatorname{cos}(p,q).
+\mathbf{v}_w\in\mathbb R^d.
 $$
 
-与未经归一化的点积相比，余弦删除模长的影响。A1 的 `most_similar` 和 `distance` 因而是在检查方向相似性。第4节 Softmax 内部仍使用原始点积分数，不应把两种计算混为一谈。
+维度 $d$ 由模型设计者指定，通常远小于词表大小。例如，五十万个词可以各用一个 100 维向量表示，而不必各用一个五十万维独热向量。
 
-- **多义词（Polysemy / Homonymy）**，Q2.2：寻找一个词，使前十个近邻同时包含两个词义的相关词。作业举 `leaves` 的“离开”和“植物叶片”、`scoop` 的不同含义。单个静态词向量合并了该词的多种使用环境，某一常见义可能主导近邻；未在前十中出现某词义，不能证明该词没有该含义。
-- **同义词与反义词（Synonyms and Antonyms）**，Q2.3：作业要求找到反义词比同义词更近的例子，给定示例是 `happy` 与 `sad` 比与 `cheerful` 更近。分布相似表示相似使用环境，正反义词可能出现在相同句法位置和话题中；语义接近不等于情感方向相同。
-- **词类比（Word Analogies）**，Q2.4–2.5：对 $a:b::c:x$ 构造目标方向 $v_b-v_a+v_c$，寻找与它余弦最相似的候选词。示例 `man : grandfather :: woman : x` 对应 $v_{\mathrm{grandfather}}-v_{\mathrm{man}}+v_{\mathrm{woman}}$，预期答案为 `grandmother`。输入词需从候选答案中排除。
-- **类比失败（Analogy Failure）**，Q2.6：预期 `hand : glove :: foot : sock` 不代表模型一定返回 `sock`；作业示例出现 `45,000-square`。向量算术是一种经验观察，不能当作精确符号规则。题目要求同时记录预期答案和实际错误答案，不能只挑成功例子。
-- **词向量偏差（Bias in Word Embeddings）**，Q2.7–2.9：比较 $v_{\mathrm{profession}}+v_{\mathrm{man}}-v_{\mathrm{woman}}$ 与反向组合的近邻，检查职业词的性别关联。进一步分析训练文本如何把已有社会关联带入向量，以及如何减轻偏差；不能把语料中的关联解释为职业或能力的客观属性。
+这种向量称为**词向量或词嵌入（Word Embedding）**。它通常是稠密的，即许多分量都不为零；同时也是**分布式表示（Distributed Representation）**：一个词的信息由多个坐标共同承载，同一个坐标也参与表示许多不同的词。
 
-### 7.2 实验边界
+不需要预先规定“第一维是动物性、第二维是交通性”。各坐标的值通过训练得到，单个坐标未必有清晰的人类解释。模型利用的是整个向量及向量之间的关系。
 
-A1 中二维图用于观察聚类、比较基于计数的表示与 GloVe。二维投影会丢失高维信息，因此“图上看起来相近”不能替代在原空间中计算相似度。具体共现矩阵、Truncated SVD 和 GloVe 方法留在第2讲说明。
+![词向量的数值表示与词空间可视化](figures/lecture01/vector-visualization.png)
 
-**本地版本注意**：A2 中相关数学题使用 Naive Softmax。不能将其他年份的负采样代码任务误认为本课程 A2 的要求；负采样本身在第 2 讲讲授。
+图中的低维位置用于展示词之间的关系。实际词向量可以有很多维，二维展示会丢失信息。
 
-## 来源
+## 3. Skip-gram：把学习词义变成预测任务
 
-- 主课件：`slides/lecture01-wordvecs1.pdf`，Christopher Manning，40 页。
-- 公式交叉核对：`readings/notes/cs224n_winter2023_lecture1_notes_draft.pdf` §3.4，PDF P10–11。
-- 作业对应：A1；A2 Part 1(a–e)。第5.3–5.4节的矩阵梯度、零梯度条件和归一化分析为明确标注的作业补充。
-- 演示：`materials/gensim_2024.zip` 中的 Gensim Notebook。
+我们没有给每个词标注一组“正确的语义坐标”，所以不能直接让模型拟合这样的答案。可以改为提出一个有现成训练答案的问题：
+
+> 给定中心词，哪些词容易出现在它附近？
+
+文本本身就提供了答案。若 `banking` 与 `crises` 在窗口内共同出现，就得到一个训练词对：
+
+$$
+(c,o)=(\text{banking},\text{crises}).
+$$
+
+其中 $c$ 表示中心词（Center Word），$o$ 表示外围词（Outside Word），即窗口中的一个上下文词。
+
+**Word2Vec** 是一组学习词向量的方法，**Skip-gram** 是其中“用中心词预测外围词”的方法。对于上一节的窗口，可以提取四个训练词对：
+
+| 中心词 $c$ | 外围词 $o$ |
+| --- | --- |
+| banking | turning |
+| banking | into |
+| banking | crises |
+| banking | as |
+
+这些词对分别提供训练信号。基本 Skip-gram 不区分外围词在左边还是右边、距离是 1 还是 2，也不把它们按顺序生成一句话。
+
+![Skip-gram由中心词预测多个上下文位置](figures/lecture01/skipgram-architecture.png)
+
+模型为了做好预测，必须调整词向量。若两个中心词经常对应相似的上下文，训练会推动它们学到能够产生相似预测的表示。这是词向量获得语义联系的途径，而不是训练前已经保证的性质。
+
+## 4. 匹配分数与预测概率
+
+### 4.1 两套向量分别承担输入与输出角色
+
+Skip-gram 为每个词学习两套向量：
+
+| 参数 | 含义 | 在预测中的作用 |
+| --- | --- | --- |
+| $\mathbf{v}_w\in\mathbb R^d$ | 中心词向量 | 表示给定的输入词 |
+| $\mathbf{u}_w\in\mathbb R^d$ | 外围词向量 | 表示候选的输出词 |
+
+例如，预测 `banking` 附近是否出现 `crises` 时，使用 $\mathbf{v}_{\text{banking}}$ 和 $\mathbf{u}_{\text{crises}}$。若另一个窗口以 `crises` 为中心，则输入使用 $\mathbf{v}_{\text{crises}}$。
+
+两套向量对应两种角色，不是一个词的两种词义。将两种角色分开，使模型能分别学习“这个词作为输入时提供什么信息”和“这个词作为输出时如何被预测”。
+
+设全部可学习参数为 $\boldsymbol{\theta}$，它包含所有 $\mathbf{v}_w$ 和 $\mathbf{u}_w$，总共有 $2d|V|$ 个实数。它们从初始值出发，在训练中不断更新。
+
+### 4.2 点积给出匹配分数
+
+给定中心词 $c$，对每个候选外围词 $w$ 计算：
+
+$$
+z_w=\mathbf{u}_w^\top \mathbf{v}_c=\sum_{k=1}^{d}u_{w,k}v_{c,k}.
+$$
+
+$z_w$ 是一个实数，称为分数或 logit。分数越高，表示当前模型越倾向于把 $w$ 预测为 $c$ 的外围词。
+
+点积同时受方向和模长影响，因此这里的匹配分数不等于只比较方向的余弦相似度。分数也还不是概率：它可以为负，各候选的分数之和不必为 1。
+
+### 4.3 Softmax把所有候选分数归一化
+
+用 Softmax 将分数变成概率：
+
+$$
+\boxed{P(o\mid c;\boldsymbol{\theta})=\frac{\exp(\mathbf{u}_o^\top \mathbf{v}_c)}{\sum_{w\in V}\exp(\mathbf{u}_w^\top \mathbf{v}_c)}}.
+$$
+
+$P(o\mid c;\boldsymbol{\theta})$ 表示：给定中心词 $c$，在当前参数 $\boldsymbol{\theta}$ 下，模型将外围词预测为 $o$ 的概率。
+
+指数函数使各项为正，分母把整个词表中所有候选的指数分数加起来，所以：
+
+$$
+\sum_{o\in V}P(o\mid c;\boldsymbol{\theta})=1.
+$$
+
+例如，三个候选词的分数为 $[2,1,0]$，Softmax 给出约 $[0.665,0.245,0.090]$。分数最高的候选获得最大概率，其余候选仍保留概率。Softmax 返回的是完整概率分布，而不是最大值的索引。
+
+概率取决于候选之间的相对分数。提高正确外围词的分数、保持其他分数不变，会提高它的概率；给所有分数都加同一个常数，则概率不变。
+
+## 5. 训练目标：让真实出现的词对获得更高概率
+
+### 5.1 单个词对的损失
+
+对于观察到的词对 $(c,o)$，我们希望 $P(o\mid c;\boldsymbol{\theta})$ 更高。把它写成需要最小化的**损失（Loss）**：
+
+$$
+J_{c,o}(\boldsymbol{\theta})=-\log P(o\mid c;\boldsymbol{\theta}).
+$$
+
+这里使用自然对数。预测概率为 $0.1$ 时，损失约为 $2.303$；概率为 $0.8$ 时，损失约为 $0.223$。概率越低，惩罚越大。
+
+代入 Softmax：
+
+$$
+\boxed{J_{c,o}=-\mathbf{u}_o^\top \mathbf{v}_c+\log\sum_{w\in V}\exp(\mathbf{u}_w^\top \mathbf{v}_c)}.
+$$
+
+第一项鼓励提高真实外围词的分数；第二项同时考虑全部候选，防止把所有分数一起提高就当作预测改善。
+
+### 5.2 从单个词对到整个语料
+
+**语料（Corpus）**是用于训练的文本集合。将它表示为词序列 $w_1,\ldots,w_T$，其中 $T$ 是词的位置数。
+
+为了简化下标，记位置 $t$ 的合法外围偏移集合为：
+
+$$
+\mathcal C_t=\{j\mid -m\le j\le m,\ j\ne0,\ 1\le t+j\le T\}.
+$$
+
+它排除中心位置和超出语料边界的位置。把各窗口词对的概率相乘，得到 Skip-gram 的训练似然：
+
+$$
+L(\boldsymbol{\theta})=\prod_{t=1}^{T}\prod_{j\in\mathcal C_t}P(w_{t+j}\mid w_t;\boldsymbol{\theta}).
+$$
+
+**似然（Likelihood）**是把已观察到的训练词对固定下来，考察不同参数对这些数据赋予多大的概率。这里把各外围词作为给定中心词后的独立预测项处理，并不表示自然语言中的这些词真的互相独立。
+
+最大化这个乘积，等价于最小化它的负对数：
+
+$$
+\boxed{J(\boldsymbol{\theta})=-\frac1T\log L(\boldsymbol{\theta})
+=\frac1T\sum_{t=1}^{T}\sum_{j\in\mathcal C_t}J_{w_t,w_{t+j}}(\boldsymbol{\theta})}.
+$$
+
+对数把乘积变成求和，负号把最大化变成最小化。这里除以 $T$，是按中心位置数归一化；一个位置仍可能贡献多个词对损失。
+
+同一个中心词在不同位置会对应不同外围词。模型必须在这些训练样本之间取得平衡，学习一个上下文概率分布，而不是永远只预测某一个固定词。
+
+### 5.3 与交叉熵的关系
+
+固定一个训练词对，将真实外围词表示成独热标签 $\mathbf{y}\in\mathbb R^{|V|}$：只有 $y_o=1$，其余为 0。用 $\hat{\mathbf{y}}$ 表示模型预测的完整概率分布。
+
+两个分布之间的**交叉熵（Cross-entropy）**为：
+
+$$
+H(\mathbf{y},\hat{\mathbf{y}})=-\sum_{w\in V}y_w\log\hat y_w.
+$$
+
+独热标签只保留真实类别对应的一项，所以：
+
+$$
+H(\mathbf{y},\hat{\mathbf{y}})=-\log\hat y_o=J_{c,o}.
+$$
+
+因此，对当前词对而言，交叉熵和负对数似然是同一个损失的两种写法。独热标签描述当前样本的答案，不表示该中心词在整个语料里只能有一个外围词。
+
+## 6. 词向量的梯度与参数更新
+
+**梯度（Gradient）**把损失对各参数分量的偏导数组成一个向量。它描述参数在当前位置发生微小变化时，损失怎样变化。梯度下降沿负梯度方向更新参数，以降低损失。
+
+下面先固定一个词对 $(c,o)$，推导它对参数的影响。所有词向量均视为列向量，标量损失对参数的梯度与参数形状相同。
+
+### 6.1 对中心词向量求导
+
+记 Softmax 的分母为：
+
+$$
+Z_c=\sum_{w\in V}\exp(\mathbf{u}_w^\top \mathbf{v}_c).
+$$
+
+单词对损失为 $J_{c,o}=-\mathbf{u}_o^\top \mathbf{v}_c+\log Z_c$。第一项是点积，逐坐标求导可得：
+
+$$
+\frac{\partial(\mathbf{u}_o^\top \mathbf{v}_c)}{\partial v_{c,k}}=u_{o,k},
+\qquad \nabla_{\mathbf{v}_c}(-\mathbf{u}_o^\top \mathbf{v}_c)=-\mathbf{u}_o.
+$$
+
+第二项依次对对数、指数和点积使用链式法则：
+
+$$
+\begin{aligned}
+\nabla_{\mathbf{v}_c}\log Z_c
+&=\frac1{Z_c}\sum_{w\in V}\exp(\mathbf{u}_w^\top \mathbf{v}_c)\mathbf{u}_w\\
+&=\sum_{w\in V}P(w\mid c)\mathbf{u}_w.
+\end{aligned}
+$$
+
+两项相加：
+
+$$
+\boxed{\nabla_{\mathbf{v}_c}J_{c,o}=\sum_{w\in V}P(w\mid c)\mathbf{u}_w-\mathbf{u}_o}.
+$$
+
+其中 $\sum_wP(w\mid c)\mathbf{u}_w$ 是按当前预测概率加权的外围向量平均值，也就是模型预测分布下的期望向量。
+
+学习率为 $\alpha>0$ 时，更新为：
+
+$$
+\mathbf{v}_c\leftarrow \mathbf{v}_c-\alpha\nabla_{\mathbf{v}_c}J_{c,o}
+=\mathbf{v}_c+\alpha\left(\mathbf{u}_o-\sum_wP(w\mid c)\mathbf{u}_w\right).
+$$
+
+更新方向是“真实观察到的外围向量”减去“当前模型预测的平均外围向量”。它增加真实观测相对于模型平均预测的影响。
+
+### 6.2 对外围词向量求导
+
+对某个候选词 $w$ 的向量 $\mathbf{u}_w$：
+
+$$
+\boxed{\nabla_{\mathbf{u}_w}J_{c,o}=(\hat y_w-y_w)\mathbf{v}_c}.
+$$
+
+分两种情况理解：
+
+- 对真实外围词 $w=o$，$\hat y_o-1<0$，梯度下降会沿 $\mathbf{v}_c$ 方向增加 $\mathbf{u}_o$，从而提高它与当前中心向量的点积分数。
+- 对其他候选词 $w\ne o$，$y_w=0$，梯度下降会减去 $\alpha\hat y_w\mathbf{v}_c$。模型原先赋予它的概率越高，这次修正越大。
+
+这解释了完整 Softmax 的一个计算特点：虽然一个样本只观察到一个外围词，分母却依赖整个词表，因此所有外围向量通常都会收到梯度。词表很大时，这部分计算很昂贵；下一讲的负采样会处理这个问题。
+
+### 6.3 一个数值例子
+
+考虑一维向量和三个候选外围词：
+
+$$
+\mathbf{v}_c=1,\qquad (\mathbf{u}_1,\mathbf{u}_2,\mathbf{u}_3)=(2,1,0).
+$$
+
+点积分数为 $[2,1,0]$，预测概率约为 $[0.665,0.245,0.090]$。假设实际外围词是第 2 个词，那么：
+
+$$
+\begin{aligned}
+\nabla_{\mathbf{v}_c}J&\approx0.665\times2+0.245\times1+0.090\times0-1=0.575,\\
+(\nabla_{\mathbf{u}_1}J,\nabla_{\mathbf{u}_2}J,\nabla_{\mathbf{u}_3}J)&\approx(0.665,-0.755,0.090).
+\end{aligned}
+$$
+
+取 $\alpha=0.1$，在同一组旧参数上计算梯度后，得到：
+
+$$
+\mathbf{v}_c'\approx0.943,\qquad (\mathbf{u}_1',\mathbf{u}_2',\mathbf{u}_3')\approx(1.933,1.076,-0.009).
+$$
+
+重新计算后，真实外围词的概率从约 $0.245$ 提高到约 $0.277$，损失从约 $1.408$ 降到约 $1.282$。这体现了一步更新的作用：降低错误候选的相对优势，提高真实观测的预测概率。
+
+### 6.4 矩阵形式与形状检查
+
+把每个外围词的向量转置后放在矩阵的一行，与课件中的 $\mathbf{U}\mathbf{v}_c$ 对应：
+
+$$
+\mathbf{U}=\begin{bmatrix}\mathbf{u}_1^\top\\\vdots\\\mathbf{u}_{|V|}^\top\end{bmatrix}\in\mathbb R^{|V|\times d}.
+$$
+
+则前向计算和梯度可以写成：
+
+$$
+\mathbf{z}=\mathbf{U}\mathbf{v}_c,\qquad \hat{\mathbf{y}}=\operatorname{softmax}(\mathbf{z}),
+$$
+
+$$
+\boxed{\nabla_{\mathbf{v}_c}J=\mathbf{U}^\top(\hat{\mathbf{y}}-\mathbf{y})},\qquad
+\boxed{\nabla_{\mathbf{U}}J=(\hat{\mathbf{y}}-\mathbf{y})\mathbf{v}_c^\top}.
+$$
+
+$\hat{\mathbf{y}}-\mathbf{y}$ 是“预测概率减真实标签”的误差向量。左乘 $\mathbf{U}^\top$，得到 $d$ 维中心向量梯度；与 $\mathbf{v}_c^\top$ 做外积，得到 $|V|\times d$ 的外围矩阵梯度。两者都与被更新参数的形状一致。
+
+同一个词向量在多个训练词对中被使用时，它收到的梯度需要相加。整个窗口的梯度是各词对梯度之和，整个训练目标再按定义进行归一化。
+
+## 7. 梯度下降与小批量训练
+
+### 7.1 梯度下降
+
+将所有词向量统称为参数 $\boldsymbol{\theta}$，梯度下降的更新规则是：
+
+$$
+\boldsymbol{\theta}\leftarrow\boldsymbol{\theta}-\alpha\nabla_{\boldsymbol{\theta}} J(\boldsymbol{\theta}).
+$$
+
+每次都在同一组旧参数上计算梯度，再一起更新参数。学习率 $\alpha$ 控制更新幅度：太大可能使损失上升，太小则训练缓慢。词向量目标涉及两套向量的共同学习，一般不是凸优化问题，因此不能保证训练得到全局最优解。
+
+### 7.2 随机梯度下降与小批量
+
+完整目标包含全部语料窗口。如果每更新一次都遍历全部文本，计算成本会很高。
+
+**随机梯度下降（SGD）**每次抽取一个中心位置，用它的窗口损失计算梯度并更新参数。**小批量梯度下降（Mini-batch Gradient Descent）**一次抽取一批位置，在这些窗口上取平均，再更新参数。
+
+记位置 $t$ 的窗口损失为：
+
+$$
+\ell_t(\boldsymbol{\theta})=\sum_{j\in\mathcal C_t}J_{w_t,w_{t+j}}(\boldsymbol{\theta}).
+$$
+
+对一批中心位置 $\mathcal B$：
+
+$$
+J_{\mathcal B}(\boldsymbol{\theta})=\frac1{|\mathcal B|}\sum_{t\in\mathcal B}\ell_t(\boldsymbol{\theta}).
+$$
+
+从中心位置均匀抽样时，这个梯度是完整目标梯度的无偏估计：单次更新可能有噪声，但对抽样取平均后，与完整目标的梯度一致。
+
+> **算法 1：用小批量梯度下降训练 Skip-gram（完整 Softmax）**
+>
+> **输入**：词序列 $w_1,\ldots,w_T$、词表 $V$、窗口半径 $m$、向量维度 $d$、学习率 $\alpha$、批大小 $b$、更新次数 $K$。
+>
+> **输出**：中心词向量表 $\{\mathbf{v}_w\}_{w\in V}$ 和外围词向量表 $\{\mathbf{u}_w\}_{w\in V}$。
+>
+> 1. **初始化**：为每个词随机初始化 $\mathbf{v}_w,\mathbf{u}_w\in\mathbb R^d$，将所有向量记为参数 $\boldsymbol{\theta}$。
+> 2. **循环**：对 $k=1,\ldots,K$，执行以下步骤：
+>    1. **抽样**：从 $1,\ldots,T$ 中均匀、有放回地抽取 $b$ 个中心位置，组成批次 $\mathcal B$；重复抽到的位置重复计入。
+>    2. **构造词对**：对批次中每个位置 $t$，提取所有 $(w_t,w_{t+j})$，其中 $j\in\mathcal C_t$。
+>    3. **前向计算**：对每个词对 $(c,o)$，计算整个词表的分数 $\mathbf{z}=\mathbf{U}\mathbf{v}_c$，再计算 $\hat{\mathbf{y}}=\operatorname{softmax}(\mathbf{z})$ 和损失 $-\log\hat y_o$。
+>    4. **汇总损失**：将上述词对损失求和，再除以批大小 $b$，得到 $J_{\mathcal B}(\boldsymbol{\theta})$。
+>    5. **计算梯度**：在当前参数上计算 $\mathbf{g}=\nabla_{\boldsymbol{\theta}} J_{\mathcal B}(\boldsymbol{\theta})$，累加同一参数在各词对中的梯度贡献。
+>    6. **更新参数**：$\boldsymbol{\theta}\leftarrow\boldsymbol{\theta}-\alpha \mathbf{g}$。
+> 3. **返回**：更新后的两张词向量表。
+
+这里用固定更新次数 $K$ 明确循环何时结束。每次循环完成一次“抽样 → 前向计算 → 计算梯度 → 更新参数”；批大小 $b=1$ 时，就是每次使用一个窗口的 SGD。
+
+## 8. 词向量的语义关系与局限
+
+### 8.1 用余弦相似度寻找相关词
+
+训练结束后，可以取中心向量 $\mathbf{v}_w$ 作为词表示，也可以采用外围向量或两者的组合；使用时需要明确选择，并保持一致。
+
+比较两个非零词向量 $\mathbf{p},\mathbf{q}$ 时，常用**余弦相似度（Cosine Similarity）**：
+
+$$
+\operatorname{cos}(\mathbf{p},\mathbf{q})=\frac{\mathbf{p}^\top \mathbf{q}}{\|\mathbf{p}\|_2\|\mathbf{q}\|_2}.
+$$
+
+它只比较方向，范围为 $[-1,1]$：方向相同为 1，正交为 0，方向相反为 $-1$。在词表中寻找余弦相似度较高的词，可以观察模型学到了哪些关联。
+
+将向量归一化为 $\bar{\mathbf{p}}=\mathbf{p}/\|\mathbf{p}\|_2$ 后，单位向量的点积就等于原向量的余弦相似度。归一化保留方向、去掉模长；如果某个任务需要利用模长携带的信息，这种处理也可能丢失信息。
+
+### 8.2 词向量算术与类比
+
+有些词之间的关系可以近似体现为向量差。例如，类比 $a:b::c:x$ 可以通过寻找接近下列向量的词来求解：
+
+$$
+\mathbf{v}_x\approx \mathbf{v}_b-\mathbf{v}_a+\mathbf{v}_c.
+$$
+
+对于 `man : grandfather :: woman : ?`，可以构造 $\mathbf{v}_{\text{grandfather}}-\mathbf{v}_{\text{man}}+\mathbf{v}_{\text{woman}}$，再搜索相近词，预期找到 `grandmother`。
+
+这是一种观察表示的方法，不是严格的符号运算规则。能否得到预期答案取决于训练数据、模型和候选词，不能只凭几个成功例子就认为向量已经完整表示了这种关系。
+
+### 8.3 静态词向量的局限
+
+**静态词向量**为同一个词固定分配一个表示，与当前句子无关。因此它有几个直接限制：
+
+- **多义词混合**：`bank` 的金融机构义与河岸义共享一个向量，常见用法可能主导表示。
+- **相关不等于同义**：反义词也可能具有相似上下文，向量接近不保证可以互相替换。
+- **语料偏差会进入表示**：职业与性别等社会关联可能被模型学到，但这些关联不等于客观事实。
+- **词向量不是句子理解**：即使每个词都有表示，仍需要模型处理词序、否定、句法和上下文，才能解释整句话。
+
+词向量提供的是从文本统计中学到的词级表示。后续的序列模型和上下文化表示，会进一步处理同一个词在不同句子中的含义。
