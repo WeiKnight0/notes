@@ -7,8 +7,14 @@ export default function rehypeNoteLinks(options = {}) {
       ...options,
       sourcePath: sourcePathFor(file, options.sourcePath),
     });
+    let imageIndex = 0;
     visit(tree, (node) => {
       if (node.type !== 'element' || !node.properties) return;
+      if (node.tagName === 'img') {
+        node.properties.loading ??= imageIndex === 0 ? 'eager' : 'lazy';
+        node.properties.decoding ??= 'async';
+        imageIndex += 1;
+      }
       if (typeof node.properties.href === 'string') {
         node.properties.href = rewrite(node.properties.href, {
           asset: node.tagName !== 'a' && node.tagName !== 'area',
