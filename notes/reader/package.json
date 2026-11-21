@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test src/note-links.test.mjs"
+    "test": "node --test src/*.test.mjs"
   },
   "dependencies": {
     "highlight.js": "^11.12.0",
