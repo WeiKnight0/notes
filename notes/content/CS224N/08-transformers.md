@@ -4,448 +4,403 @@ date: 2026-11-16
 lang: zh-cn
 ---
 
-> 主要来源：`lecture08-transformers.pdf`，61页。公式对照`cs224n-self-attention-transformers-2023_draft.pdf` §2–3和A4。
+## 1. 从循环网络到 Transformer
 
-## 1. 为什么从RNN走向Transformer
+**Transformer** 是一种以注意力机制进行序列中信息交互的神经网络结构。原始 Transformer 用于机器翻译，由编码器和解码器组成；两侧都使用注意力和前馈网络，不再通过 RNN 逐步传递隐藏状态。
 
-### 1.1 影响与本讲问题
+### 1.1 循环计算的限制
 
-第7讲在RNN编码器—解码器之间加入注意力，本讲进一步问：**“Is Attention All We Need?”** Transformer用自注意力替代递归作为上下文交互的核心，但仍需要前馈网络、位置表示、残差与归一化等组件，因此课件回答“Not Quite”。
+RNN 在第 $t$ 步的隐藏状态依赖第 $t-1$ 步，因此必须先算前一步，再算后一步。这带来两个问题：
 
-展示原始Transformer在WMT 2014英德、英法翻译的质量与训练效率，以及后续SuperGLUE、Chatbot Arena上的影响。SuperGLUE包括问答、词义消歧、共指消解、自然语言推断等任务。说明相关注意力架构思想还用于蛋白质结构预测和Vision Transformer图像分类，不展开这些领域的模型细节。
+**远距离信息需要经过较长路径。** 例如，`The chef who ... ate` 中，`chef` 的信息需要经过中间多个时间步，才能影响 `ate` 处的状态；反向传播也要经过这条长链，长期依赖较难学习。
 
-**缩放规律（Scaling Laws）**指出：同时增加模型规模、训练数据与计算量时，语言建模性能可呈现较平滑的幂律变化。课件据此提出继续放大模型能达到什么能力的问题；它是经验观察与研究问题，不是无限扩展必然达到某种能力的证明。
+![RNN 中 chef 的信息需要经过多个时间步才能传到 ate](figures/lecture08/rnn-long-distance.png)
 
-### 1.2 三个设计目标
+**同一序列的不同时间步难以并行计算。** 后一步必须等待前一步，限制了 GPU 等设备的并行能力。
 
-为重复提纲。
+![RNN 各位置状态的计算存在先后依赖](figures/lecture08/rnn-sequential-computation.png)
 
-2016年前后常见做法是双向LSTM编码、LSTM解码，再用注意力访问源端。本讲指出三个改进目标：
+图中的数字表示得到相应状态至少需要经过多少步计算。同一层越靠后的位置，需要等待的步骤越多。
 
-1. 降低或至少不增加**每层计算复杂度（Computational Complexity per Layer）**。
-2. 缩短任意词对间的**交互路径长度（Path Length）**，有利于长距离依赖学习。
-3. 最大化**可并行计算（Parallelizable Computation）**。
+Transformer 的三个设计目标是：降低或至少不增加每层计算量、缩短词之间的交互路径，以及增加可并行计算的部分。
 
-RNN按时间递归，$h_t$依赖$h_{t-1}$；即使GPU一次能执行许多独立运算，也不能在前序状态算完前完整算出后序状态。相隔很远的两个词需要经过$O(n)$步才能交互，梯度也必须沿这条长链传播。局部词通常相关这一**线性局部性（Linear Locality）**是有用先验，但线性距离不能完整反映语义／句法关系，如`The chef who ... ate`中`chef`与`ate`的远距离关联。
+### 1.2 自注意力的直接连接
 
-自注意力使一个位置在一层内直接读取其他位置上一层的表示，各位置的本层输出可以一起计算。
+**自注意力（Self-attention）**让同一序列中的每个位置，根据其他位置的表示更新自己的表示。编码器中，每个词都可以直接读取整句各个位置的信息。
 
-![递归与自注意力的依赖关系及并行计算路径](figures/lecture08/computational-dependencies.png)
+![自注意力中每个位置都连接上一层的所有位置](figures/lecture08/self-attention-connections.png)
 
-### 1.3 复杂度比较的适用范围
+图中最下方是词嵌入，上方是两层自注意力。每个位置都读取上一层各位置的表示，图中省略了大部分连线；各层节点上的数字相同，表示同层各位置可以在同一步计算。
 
-设序列长$n$、表示宽度$d$。
+同一层的计算使用上一层已经得到的全部表示，因此不需要先算本层第一个位置，再算第二个位置；各位置可以并行计算。相隔很远的两个词，也能在一个注意力层中直接交互。
 
-| 核心计算 | 每层主要复杂度 | 顺序依赖步数 | 最长交互路径 |
+![RNN 与 Transformer 编码器—解码器的计算依赖对比](figures/lecture08/computational-dependencies.png)
+
+### 1.3 计算复杂度与交互路径
+
+设序列长度为 $n$，表示维度为 $d$，主要计算的比较为：
+
+| 层类型 | 每层计算复杂度 | 必须顺序执行的步数 | 最长交互路径 |
 | --- | --- | --- | --- |
-| 稠密循环变换 | $O(nd^2)$ | $O(n)$ | $O(n)$ |
-| 全连接自注意力的两两交互 | $O(n^2d)$ | $O(1)$ | $O(1)$ |
+| 循环层 | $O(nd^2)$ | $O(n)$ | $O(n)$ |
+| 自注意力的两两交互 | $O(n^2d)$ | $O(1)$ | $O(1)$ |
 
-![课件对不同层类型的复杂度与路径长度比较](figures/lecture08/complexity-table.png)
+当 $n$ 小于 $d$ 时，注意力的两两交互计算可能比循环层更便宜。
 
-当$n\ll d$时，两两注意力交互项相对循环矩阵乘法可能更便宜。但完整Transformer还包括Q/K/V投影和前馈网络，均有与$nd^2$相关的计算，不能把$O(n^2d)$当成整个模型唯一成本。
+## 2. 自注意力的计算
 
-$O(1)$路径表示词对在固定层内可直接交互；不表示整个网络只需常数时间，矩阵规模和算力仍影响实际耗时。训练时目标序列已知，可并行计算所有位置；自回归生成时下一个词尚未确定，仍有逐步输出的依赖。
+### 2.1 查询 Q、键 K 和值 V
 
-## 2. Query、Key、Value与向量化自注意力
+注意力计算需要完成两件事：先确定各位置的权重，再按权重汇总这些位置的信息。
 
-### 2.1 模糊查询表的直觉
+第七讲的点积注意力中，用当前解码状态 $\mathbf{s}_t$ 与各源端状态 $\mathbf{h}_i$ 做点积，经 Softmax 得到权重，再对同一组 $\mathbf{h}_i$ 加权求和。因此，$\mathbf{h}_i$ 同时参与匹配和信息汇总。
 
-课件把注意力比作**模糊／近似哈希表（“Fuzzy” / Approximate Hashtable）**：普通查表定位一个键值项；注意力用**查询（Query）**与所有**键（Keys）**匹配，再按匹配程度对**值（Values）**加权求和。
+Transformer 将这两种用途分开：从每个位置的输入分别生成**键 $\mathbf{k}$ 和值 $\mathbf{v}$**。**键 $\mathbf{k}$ 用于与查询 $\mathbf{q}$ 计算匹配分数，决定该位置获得多大权重；值 $\mathbf{v}$ 用于加权求和，决定该位置提供什么信息。** 查询 $\mathbf{q}$ 也由当前位置的输入通过投影得到。
 
-![Query比较Keys并读取加权Values的直觉](figures/lecture08/query-key-value.png)
-
-三个角色不同：Query表达当前位置要找什么，Key表达各位置可供匹配的特征，Value是实际被读取和汇总的信息。它们从同一输入产生时称**自注意力（Self-attention）**；来自同一序列不等于三个投影必须相同。
-
-### 2.2 单位置公式与矩阵形状
-
-采用每行一个词元的约定：
+对于输入位置 $i$ 的表示 $\mathbf{x}_i$，通过三组可学习矩阵得到：
 
 $$
-X\in\mathbb R^{n\times d},\qquad
-Q=XW_Q\in\mathbb R^{n\times d_k},\quad
-K=XW_K\in\mathbb R^{n\times d_k},\quad
-V=XW_V\in\mathbb R^{n\times d_v}.
+\mathbf{q}_i=\mathbf{W}_Q\mathbf{x}_i,\qquad
+\mathbf{k}_i=\mathbf{W}_K\mathbf{x}_i,\qquad
+\mathbf{v}_i=\mathbf{W}_V\mathbf{x}_i.
 $$
 
-其中$W_Q,W_K\in\mathbb R^{d\times d_k}$，$W_V\in\mathbb R^{d\times d_v}$。对位置$i$：
+- **查询 $\mathbf{q}_i$（Query）**：用于位置 $i$ 发起匹配，与各位置的键 $\mathbf{k}$ 计算分数。
+- **键 $\mathbf{k}_j$（Key）**：位置 $j$ 用来参与匹配的表示。
+- **值 $\mathbf{v}_j$（Value）**：位置 $j$ 实际提供给加权求和的信息。
+
+例如，更新 `ate` 的表示时，用 `ate` 对应的查询 $\mathbf{q}$ 与 `chef` 等各词的键 $\mathbf{k}$ 比较，再根据匹配权重汇总各词的值 $\mathbf{v}$。查询 $\mathbf{Q}$、键 $\mathbf{K}$ 和值 $\mathbf{V}$ 都来自同一个序列，所以称为自注意力。三组投影矩阵不同，同一个词也会得到不同的查询 $\mathbf{q}$、键 $\mathbf{k}$ 和值 $\mathbf{v}$。
+
+可以把注意力理解为近似查表：普通查表根据查询 $\mathbf{q}$ 找到一个键 $\mathbf{k}$，例如 $\mathbf{k}_3$，就返回对应的值 $\mathbf{v}_3$；注意力则用查询 $\mathbf{q}$ 与所有键 $\mathbf{k}$ 比较，经 Softmax 得到权重，再对对应的值 $\mathbf{v}$ 加权求和。它返回的是多个值 $\mathbf{v}$ 按匹配程度组合的结果。
+
+![查询 q 与各个键 k 比较，再按匹配权重读取对应的值 v](figures/lecture08/query-key-value.png)
+
+### 2.2 单个位置的注意力输出
+
+对于每个词的输入表示 $\mathbf{x}_i$，先按上面的公式计算查询 $\mathbf{q}_i$、键 $\mathbf{k}_i$ 和值 $\mathbf{v}_i$。再用查询 $\mathbf{q}_i$ 分别与所有词的键 $\mathbf{k}_j$ 做点积，得到注意力分数：
 
 $$
-e_{ij}=q_i^Tk_j,\qquad
-\alpha_{ij}=\frac{\exp(e_{ij})}{\sum_{\ell=1}^{n}\exp(e_{i\ell})},\qquad
-h_i=\sum_{j=1}^{n}\alpha_{ij}v_j.
+e_{ij}=\mathbf{q}_i^\top\mathbf{k}_j.
 $$
 
-$q_i,k_j$在单位置式中按列向量理解，对应矩阵$Q,K$各行的转置。所有位置一起算：
+对这一组分数做 Softmax，得到位置 $i$ 对各位置 $j$ 的权重：
 
 $$
-A=\operatorname{softmax}_{\mathrm{row}}(QK^T)\in\mathbb R^{n\times n},\qquad H=AV\in\mathbb R^{n\times d_v}.
+\alpha_{ij}=\frac{\exp(e_{ij})}{\sum_{r=1}^{n}\exp(e_{ir})}.
 $$
 
-每行对应一个查询，每列对应一个被访问的源位置；Softmax沿键所在的列轴归一化，每行和为1。输出的第$i$行汇总所有位置的信息，而不只是复制输入第$i$行。
-
-![向量化自注意力的QKV投影评分归一化及加权求和](figures/lecture08/vectorized-self-attention.png)
-
-回顾阶段性结构，无新增公式。
-
-### 2.3 为什么要除以平方根维度
-
-假设初始化附近$q,k$的坐标近似独立、零均值、单位方差，且坐标乘积之间独立，则：
+再用这些权重对值 $\mathbf{v}$ 求和，得到位置 $i$ 的注意力输出：
 
 $$
-q^Tk=\sum_{r=1}^{d_k}q_rk_r,\qquad
-\mathbb E[q^Tk]=0,\qquad
-\operatorname{Var}(q^Tk)=d_k.
+\mathbf{output}_i=\sum_{j=1}^{n}\alpha_{ij}\mathbf{v}_j.
 $$
 
-维度越高，原始分数的标准差约为$\sqrt{d_k}$，容易把Softmax推向过于尖锐的区域。其Jacobian为$\operatorname{diag}(\alpha)-\alpha\alpha^T$，当分布接近独热时许多导数很小。**缩放点积注意力（Scaled Dot-product Attention）**使用：
+每个词都重复上述计算，得到各自的注意力输出。例如，计算 `chef` 的输出时，用它的查询 $\mathbf{q}$ 与句中所有词的键 $\mathbf{k}$ 比较，再对所有词的值 $\mathbf{v}$ 加权求和；其中也包括 `chef` 自己的键 $\mathbf{k}$ 和值 $\mathbf{v}$。
+
+![自注意力的四个步骤：生成 QKV、评分、Softmax、加权求和](figures/lecture08/self-attention-steps.png)
+
+### 2.3 所有位置的矩阵计算
+
+设序列有 $n$ 个词，每个词的输入表示 $\mathbf{x}_i$ 是一个 $d$ 维向量。按词在序列中的顺序，将这些向量横写成行，再从上到下排列，得到输入矩阵：
 
 $$
-\boxed{\operatorname{Attention}(Q,K,V)=\operatorname{softmax}_{\mathrm{row}}\left(\frac{QK^T}{\sqrt{d_k}}\right)V.}
+\mathbf{X}=\begin{bmatrix}
+\mathbf{x}_1^\top\\
+\mathbf{x}_2^\top\\
+\vdots\\
+\mathbf{x}_n^\top
+\end{bmatrix}\in\mathbb{R}^{n\times d}.
 $$
 
-缩放的是分数，除数是Query/Key每个头的宽度平方根；不是除以序列长度，也不是除以Value维度。
+每一行对应一个词，每一列对应输入表示的一个特征维度。用矩阵乘法可以一次计算所有词的查询 $\mathbf{Q}$、键 $\mathbf{K}$ 和值 $\mathbf{V}$：
 
-课件用LayerNorm后的单位尺度解释这一直觉。实际Q/K还经过可学习投影，坐标也未必严格独立，故这是一种初始化量级分析，不能声称训练全程分数精确服从单位方差。
+**第一步：生成所有词的查询 $\mathbf{Q}$、键 $\mathbf{K}$ 和值 $\mathbf{V}$。**
 
-## 3. 注意力之外：FFN、残差和LayerNorm
+$$
+\mathbf{Q}=\mathbf{X}\mathbf{W}_Q,\qquad
+\mathbf{K}=\mathbf{X}\mathbf{W}_K,\qquad
+\mathbf{V}=\mathbf{X}\mathbf{W}_V.
+$$
+
+三个矩阵都按词序排列：第 $i$ 行分别是 $\mathbf{q}_i^\top$、$\mathbf{k}_i^\top$ 和 $\mathbf{v}_i^\top$。若查询 $\mathbf{q}$ 和键 $\mathbf{k}$ 的维度为 $d_k$，值 $\mathbf{v}$ 的维度为 $d_v$，则 $\mathbf{Q},\mathbf{K}\in\mathbb{R}^{n\times d_k}$，$\mathbf{V}\in\mathbb{R}^{n\times d_v}$。输入向量排成行后，投影矩阵写在右侧，完成对每一行的变换。
+
+**第二步：计算每个查询 $\mathbf{q}$ 与所有键 $\mathbf{k}$ 的分数。**
+
+$$
+\mathbf{E}=\mathbf{Q}\mathbf{K}^\top\in\mathbb{R}^{n\times n},\qquad
+E_{ij}=\mathbf{q}_i^\top\mathbf{k}_j.
+$$
+
+矩阵乘法中，$\mathbf{Q}$ 的第 $i$ 行与 $\mathbf{K}^\top$ 的第 $j$ 列相乘，就得到查询 $\mathbf{q}_i$ 与键 $\mathbf{k}_j$ 的点积分数。因此，$\mathbf{E}$ 的第 $i$ 行包含词 $i$ 对全部词的分数；一共有 $n$ 个查询 $\mathbf{q}$、$n$ 个键 $\mathbf{k}$，所以得到 $n\times n$ 个分数。
+
+**第三步：将每一行分数转成注意力权重。**
+
+$$
+\mathbf{A}=\operatorname{softmax}_{\mathrm{row}}(\mathbf{E}),\qquad
+A_{ij}=\frac{\exp(E_{ij})}{\sum_{r=1}^{n}\exp(E_{ir})}.
+$$
+
+分别对 $\mathbf{E}$ 的每一行做 Softmax。$A_{ij}$ 表示计算词 $i$ 的输出时，分给词 $j$ 的权重；同一行的 $n$ 个权重之和为 1。$\mathbf{A}$ 的形状仍为 $n\times n$。
+
+**第四步：按权重对值 $\mathbf{V}$ 加权求和。**
+
+$$
+\mathbf{Output}=\mathbf{A}\mathbf{V}\in\mathbb{R}^{n\times d_v}.
+$$
+
+$\mathbf{A}$ 的第 $i$ 行有 $n$ 个权重，它们分别乘以 $\mathbf{V}$ 中对应的 $n$ 行，再相加，得到一个 $d_v$ 维输出：
+
+$$
+\mathbf{output}_i=\sum_{j=1}^{n}A_{ij}\mathbf{v}_j.
+$$
+
+$\mathbf{Output}$ 的第 $i$ 行就是 $\mathbf{output}_i^\top$，因此一次矩阵乘法得到了全部 $n$ 个词的注意力输出。
+
+![将全部位置的自注意力计算写成矩阵运算](figures/lecture08/vectorized-self-attention.png)
+
+### 2.4 缩放点积注意力
+
+查询 $\mathbf{q}$ 和键 $\mathbf{k}$ 的维度越大，点积相加的项越多，分数的幅度容易变大，使 Softmax 的权重过于集中，不利于训练。
+
+在查询 $\mathbf{q}$、键 $\mathbf{k}$ 各分量近似独立、均值为 0、方差为 1 的假设下，$d_k$ 个乘积之和的方差为 $d_k$。因此，将点积分数除以 $\sqrt{d_k}$，使其尺度较稳定，得到**缩放点积注意力（Scaled Dot-product Attention）**：
+
+$$
+\operatorname{Attention}(\mathbf{Q},\mathbf{K},\mathbf{V})
+=\operatorname{softmax}_{\mathrm{row}}\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}.
+$$
+
+缩放发生在 Softmax 之前，$d_k$ 是查询 $\mathbf{q}$ 和键 $\mathbf{k}$ 的维度。
+
+## 3. 编码器中的其他组件
 
 ### 3.1 逐位置前馈网络
 
-自注意力在位置间混合Value信息；Transformer另用**逐位置前馈网络（Position-wise Feed-forward Network, FFN）**对每个位置做非线性特征变换：
+自注意力通过加权求和汇总各位置的值 $\mathbf{v}$，但缺少对输出向量各分量的非线性变换。为增强表达能力，在注意力之后加入**逐位置前馈网络（Position-wise Feed-forward Network，FFN）**：先做线性变换，经过 ReLU 非线性激活，再做一次线性变换。
 
 $$
-\operatorname{FFN}(x)=W_2\operatorname{ReLU}(W_1x+b_1)+b_2,
+\operatorname{FFN}(\mathbf{output}_i)
+=\mathbf{W}_2\operatorname{ReLU}(\mathbf{W}_1\mathbf{output}_i+\mathbf{b}_1)+\mathbf{b}_2.
 $$
 
-$$
-W_1\in\mathbb R^{d_{\mathrm{ff}}\times d},\qquad W_2\in\mathbb R^{d\times d_{\mathrm{ff}}}.
-$$
+同一层中的所有位置使用相同的前馈网络参数，但分别处理各自的向量。这一步不在位置之间交换信息；最终输出回到模型的表示维度 $d$。
 
-同一层的各位置共享FFN参数，各位置分别计算，不在此处混合其他词；常先扩宽再投影回$d$维，使残差相加的形状一致。对行矩阵输入，对应$\operatorname{ReLU}(XW_1^T+\mathbf1b_1^T)W_2^T+\mathbf1b_2^T$。
+![注意力之后由前馈网络分别处理各位置的输出](figures/lecture08/feed-forward.png)
 
-课件说自注意力缺少“element-wise nonlinearities”，意在强调需要这样的逐位置非线性变换。注意力权重本身依赖输入且经过Softmax，因此不能据此把整个自注意力函数说成线性函数。
+### 3.2 残差连接与层归一化
 
-### 3.2 残差连接
-
-**残差连接（Residual Connections）**为子层增加恒等通路：
+**残差连接（Residual Connection）**将子层的输入与计算结果相加：
 
 $$
-y=x+f(x),\qquad \frac{\partial y}{\partial x}=I+J_f(x).
+\mathbf{y}=\mathbf{x}+f(\mathbf{x}).
 $$
 
-模型只需学习相对于输入的变化，而不是每层重新构造全部信息；恒等路径也提供直接的梯度传播通道。课件从避免深层处理遗忘／扭曲信息、使优化更容易解释其作用。
+这样，输入信息可以直接传到后面，子层学习在原表示上作出调整，有助于深层网络的训练。
 
-### 3.3 LayerNorm沿哪个维度归一化
+**层归一化（Layer Normalization，LayerNorm）**对每个位置的向量单独处理：计算其各维分量的均值和标准差，再进行归一化，使数值尺度较稳定。
 
-**层归一化（Layer Normalization, LayerNorm）**对每个样本、每个位置的$d$维向量分别计算统计量：
-
-$$
-\mu_i=\frac1d\sum_{r=1}^{d}x_{ir},\qquad
-\sigma_i^2=\frac1d\sum_{r=1}^{d}(x_{ir}-\mu_i)^2,
-$$
+对一个 $d$ 维向量 $\mathbf{x}$，归一化的核心计算为：
 
 $$
-\operatorname{LN}(x_i)=\gamma\odot\frac{x_i-\mu_i}{\sqrt{\sigma_i^2+\epsilon}}+\beta.
+\mu=\frac1d\sum_{r=1}^{d}x_r,\qquad
+\sigma^2=\frac1d\sum_{r=1}^{d}(x_r-\mu)^2,\qquad
+\tilde{x}_r=\frac{x_r-\mu}{\sqrt{\sigma^2+\epsilon}}.
 $$
 
-$\epsilon$用于数值稳定，$\gamma,\beta\in\mathbb R^d$为常见的可学习缩放和偏移。讲义为说明核心归一化省略这两个仿射参数，正文保留标准实现形式作区分。
+$\epsilon$ 是防止分母为零的小常数。统计量在当前向量的特征维度上计算，不是把整句或整个批次混在一起。
 
-统计量沿隐藏特征维计算，不是跨批样本，也不是把整句所有位置混为一组。归一化核心使向量近似零均值、单位尺度；再经过$\gamma,\beta$后不必保持严格零均值和单位方差。
+![层归一化对各位置的向量分别计算均值和标准差](figures/lecture08/layer-normalization.png)
 
-![LayerNorm按每个位置的隐藏维度独立计算统计量](figures/lecture08/layer-normalization.png)
-
-### 3.4 Add & Norm与层的顺序
-
-课件原始Transformer图使用**后归一化（Post-LN）**：
+结构图中的 **Add & Norm** 表示先做残差相加，再做层归一化：
 
 $$
-y=\operatorname{LN}(x+f(x)).
+\operatorname{LayerNorm}(\mathbf{x}+f(\mathbf{x})).
 $$
 
-随课讲义另列**前归一化（Pre-LN）**：
+自注意力和前馈网络各自配有这样的连接。
+
+### 3.3 位置编码
+
+自注意力用内容计算匹配，本身没有表示“哪个词在前、哪个词在后”。例如，`Man eats small dinosaur` 中，词序决定谁吃谁，只有词的内容不足以表达这种区别。
+
+**位置编码（Positional Encoding）**为每个位置准备一个与词向量同维度的向量 $\mathbf{p}_i$，加到词向量上：
 
 $$
-y=x+f(\operatorname{LN}(x)).
+\mathbf{x}_i=\mathbf{e}_i+\mathbf{p}_i.
 $$
 
-二者都结合残差与LayerNorm，但顺序不同，不能把“Add & Norm”一律改写成任意顺序。讲义指出Pre-LN在初始化时的梯度通常更有利于深层训练；本章整体结构按课件Post-LN图展开，不额外讨论后续变体。
+$\mathbf{e}_i$ 是词嵌入，$\mathbf{x}_i$ 是加入位置信息后的输入。查询 $\mathbf{q}$、键 $\mathbf{k}$ 和值 $\mathbf{v}$ 从这个输入计算，因此可以使用位置信息。位置编码在进入第一层之前加入。
 
-## 4. 位置表示：序列顺序从哪里来
-
-### 4.1 没有位置时的置换等变性
-
-`Man eats small dinosaur`与换序后的句子可以有不同意思。只用词嵌入和无Mask自注意力，操作本身没有“第几个词”的概念。
-
-准确说法是**置换等变（Permutation Equivariance）**：输入行重排，输出行相应重排，而不是输出所有位置都相同。设$P$为置换矩阵，$X'=PX$：
+原始 Transformer 使用不同频率的正弦和余弦函数组成位置向量。设特征维下标从 0 开始：
 
 $$
-Q'=PQ,\quad K'=PK,\quad V'=PV,\qquad Q'K'^T=P(QK^T)P^T.
+p_{i,2r}=\sin\left(\frac{i}{10000^{2r/d}}\right),\qquad
+p_{i,2r+1}=\cos\left(\frac{i}{10000^{2r/d}}\right),
+\qquad r=0,\ldots,d/2-1.
 $$
 
-逐行Softmax满足$\operatorname{softmax}(PSP^T)=P\operatorname{softmax}(S)P^T$，且$P^TP=I$，故：
+每一对特征使用相同频率的正弦和余弦，不同特征对使用不同频率。位置向量由这些函数直接计算，不需要学习参数。
+
+![不同位置及特征维上的正弦余弦编码](figures/lecture08/sinusoidal-positions.png)
+
+这些函数可以计算训练长度之外的位置，但并不保证模型在更长序列上仍能保持效果。
+
+**相对位置表示（Relative Position Representation）**则关注词之间的位置关系，例如“在前一个位置”，而不只是“位于句子第几个位置”。它将这种相对关系加入注意力计算。
+
+### 3.4 多头注意力
+
+一个词可能出于不同原因，需要关注句子中的不同位置。例如，更新动词的表示时，既可能需要主语信息，也可能需要宾语信息。**多头注意力（Multi-head Attention）**通过并行计算多组注意力，再合并结果，使模型能够分别处理这些关系。
+
+**第一步：建立多个注意力头。** 一个“头”是一套注意力计算，具有自己的一组查询 $\mathbf{Q}$、键 $\mathbf{K}$ 和值 $\mathbf{V}$ 投影矩阵。所有头接收同一个输入矩阵 $\mathbf{X}$，但各自学习不同的投影参数。
+
+设头数为 $h$，模型维度为 $d$，每个头通常将输入投影到 $d/h$ 维。第 $\ell$ 个头的查询 $\mathbf{Q}$、键 $\mathbf{K}$ 和值 $\mathbf{V}$ 为：
 
 $$
-H'=\operatorname{softmax}\left(\frac{PQK^TP^T}{\sqrt{d_k}}\right)PV
-=P\operatorname{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V=PH.
+\mathbf{Q}_{\ell}=\mathbf{X}\mathbf{W}_Q^{(\ell)},\qquad
+\mathbf{K}_{\ell}=\mathbf{X}\mathbf{W}_K^{(\ell)},\qquad
+\mathbf{V}_{\ell}=\mathbf{X}\mathbf{W}_V^{(\ell)}.
 $$
 
-对A4简化FFN，$P\mathbf1=\mathbf1$且ReLU逐元素作用：
+**第二步：各头独立计算注意力。** 每个头分别计算分数、Softmax 权重和加权和：
 
 $$
-Z'=\operatorname{ReLU}(PHW_1+\mathbf1b_1)W_2+\mathbf1b_2
-=P\bigl(\operatorname{ReLU}(HW_1+\mathbf1b_1)W_2+\mathbf1b_2\bigr)=PZ.
+\mathbf{Output}_{\ell}
+=\operatorname{softmax}_{\mathrm{row}}\left(
+\frac{\mathbf{Q}_{\ell}\mathbf{K}_{\ell}^\top}{\sqrt{d/h}}
+\right)\mathbf{V}_{\ell}.
 $$
 
-这里沿用作业行向量权重布局。模型不能仅凭这种处理区分某个词之前或之后是谁。同一词元交换位置时，其表示跟着移动，语序关系并未被编码。此推导针对无位置、无顺序相关Mask的层；因果Mask本身包含顺序约束。
+由于投影参数不同，同一个词在不同头中可以得到不同的权重分布和输出。例如，一个头可能较关注主语，另一个头可能较关注宾语；这种分工由训练学得。
 
-### 4.2 绝对位置：加到输入
-
-为每个序列索引$t$准备$d$维**位置编码（Positional Encoding）**$p_t$，在最初输入层加入：
+**第三步：拼接并组合各头输出。** 对于同一个词，将各头输出的向量首尾拼接，再通过一个可学习的输出矩阵：
 
 $$
-\tilde x_t=x_t+p_t.
+\mathbf{Output}
+=\operatorname{Concat}(\mathbf{Output}_1,\ldots,\mathbf{Output}_h)\mathbf{W}_O.
 $$
 
-维度与词嵌入相同，保留模型宽度；也可以拼接，但本讲使用相加。相加发生在Q/K/V投影之前，因此三个角色都能利用位置信息，而非只给某一个投影加位置。
+每个头为每个词输出 $d/h$ 维向量，$h$ 个头拼接后得到 $d$ 维向量。$\mathbf{W}_O\in\mathbb{R}^{d\times d}$ 再将各头的信息组合起来，得到该词最终的多头注意力输出。对全部 $n$ 个词一起计算，输出矩阵的形状为 $n\times d$。
 
-随课讲义§2.2还说明可学习位置嵌入：用参数矩阵$P_{\mathrm{pos}}\in\mathbb R^{N\times d}$按位置查表，$N$为支持长度。A4的vanilla模型采用可学习位置嵌入，原始Transformer采用下一小节的固定正弦位置编码。
+![多个注意力头独立计算，再拼接并进行输出投影](figures/lecture08/multi-head-attention.png)
 
-### 4.3 正弦与余弦位置编码
+### 3.5 编码器的层结构
 
-令$d$为偶数，$t=0,\ldots,n-1$，$i=0,\ldots,d/2-1$：
+编码器先将每个源词的词嵌入与位置编码相加，再将整组表示送入第一层。每个编码器层依次执行：
 
-$$
-p_{t,2i}=\sin\left(\frac{t}{10000^{2i/d}}\right),\qquad
-p_{t,2i+1}=\cos\left(\frac{t}{10000^{2i/d}}\right).
-$$
+1. **多头自注意力**：每个位置根据本层输入中各位置的信息，计算注意力输出。
+2. **第一次 Add & Norm**：将注意力输出与本层输入相加，再做层归一化，得到中间表示。
+3. **逐位置前馈网络**：分别对各位置的中间表示做非线性变换。
+4. **第二次 Add & Norm**：将前馈网络的输出与其输入（第 2 步的中间表示）相加，再做层归一化，得到本层输出。
 
-同一对维度用相同频率的正弦和余弦，不同维度对使用不同频率。位置由多个周期共同表示；编码不依赖词本身，因此不同词在相同索引可拥有相同位置向量。
+![完整编码器：词嵌入加位置编码后，依次经过多头注意力、前馈网络及两次 Add & Norm](figures/lecture08/encoder-complete.png)
 
-![多种周期的正弦余弦位置编码](figures/lecture08/sinusoidal-positions.png)
+图中左侧框内的结构重复 6 次，即堆叠 6 个编码器层。上一层输出的整组词表示作为下一层输入，各层具有自己的参数。
 
-A4问同一序列两个不同位置是否可拥有完全相同的位置向量。在理想实数运算、整数位置下，第一对$\sin t,\cos t$相等就要求$t-s=2\pi k$；整数差无法等于非零的$2\pi k$，所以$t\ne s$不可能完全相同。单个正弦维度可以重复；不能由一个维度重复推出整个位置向量相同。有限精度的数值近似与理想结论需分开。
+每层都为每个源词输出一个 $d$ 维向量，因此输入和输出的形状均为 $n\times d$。顶层输出保留全部源位置的表示，供解码器通过交叉注意力读取。
 
-固定函数可对训练长度以外的位置继续求值，但**可计算（Computable）**不等于**能可靠外推（Reliable Extrapolation）**。课件明确指出原先周期性带来的外推设想在实践中并不自动成立。
+## 4. Transformer 解码器
 
-### 4.4 相对位置与RoPE
+### 4.1 带掩码的多头自注意力
 
-**相对位置表示（Relative Position Representations）**强调“某词在另一词前一位／后若干位”，而非只强调绝对索引。介绍Shaw等2018的关系感知自注意力，将词间相对关系纳入评分及值的聚合。该页公式文本缺失，保留原图，不猜其具体剪裁范围或参数设置。
+解码器逐词预测目标序列。训练时，将正确目标序列右移一位作为输入，例如：
 
-![Shaw关系感知自注意力及相对位置的原始对照](figures/lecture08/relative-positions.png)
+| 位置 | 1 | 2 | 3 | 4 |
+| --- | --- | --- | --- | --- |
+| 输入 | `<START>` | `The` | `chef` | `who` |
+| 预测目标 | `The` | `chef` | `who` | 下一个词 |
 
-列出相对线性位置、依存句法位置与**旋转位置编码（Rotary Positional Embedding, RoPE）**。RoPE在A4实际实现，下面按作业给出必要公式。
+预测 `chef` 时，允许读取 `<START>` 和 `The`，但不能读取后面的输入 `chef`、`who`，否则答案会提前进入模型。
 
-对一对特征，在位置$t$旋转角度$t\theta$：
-
-$$
-R(t\theta)=\begin{bmatrix}\cos(t\theta)&-\sin(t\theta)\\\sin(t\theta)&\cos(t\theta)\end{bmatrix},\qquad
-\operatorname{RoPE}(x,t)=R(t\theta)x.
-$$
-
-$d$维向量按相邻两维分组，每组角频率$\theta_i=10000^{-2(i-1)/d}$，$i=1,\ldots,d/2$。每组分别旋转。用复数$z=a+\mathrm i b$表示一对特征时：
+**带掩码的自注意力（Masked Self-attention）**在 Softmax 之前，将不允许读取的位置分数设为 $-\infty$，使其权重变为 0。用 $i$ 表示当前要预测的目标词位置，$j$ 表示可供读取的目标词位置，分数写为：
 
 $$
-z'=ze^{\mathrm i t\theta}=(a\cos t\theta-b\sin t\theta)+\mathrm i(a\sin t\theta+b\cos t\theta).
+e_{ij}=\begin{cases}
+\mathbf{q}_i^\top\mathbf{k}_j,&j<i,\\
+-\infty,&j\ge i.
+\end{cases}
 $$
 
-实部与虚部分别恢复旋转后的两个坐标；重新排列各组即可与实矩阵块对角旋转一致，不需要显式构造$d\times d$大矩阵。
+这里从 1 开始编号目标词，`<START>` 的位置记为 0。例如，预测第 2 个目标词 `chef` 时，可以读取位置 0 的 `<START>` 和位置 1 的 `The`；位置 2 的 `chef` 及之后的词都被遮蔽。
 
-对位置$t,s$的查询与键：
+![未来遮蔽：预测目标词时只能读取它之前的词](figures/lecture08/causal-mask.png)
 
-$$
-(R(t\theta)q)^T(R(s\theta)k)=q^TR((s-t)\theta)k
-=(R((t-s)\theta)q)^Tk.
-$$
+图中灰色区域对应分数为 $-\infty$ 的位置，经过 Softmax 后，这些位置的权重为 0。
 
-位置影响仅通过相对差出现。复数形式对应：
+一次计算所有位置时，可以用掩码矩阵 $\mathbf{M}$ 实现上述遮蔽。按前表右移后的输入位置编号，第 $i$ 行可以读取第 $i$ 列及之前的输入：
 
 $$
-\operatorname{Re}\left((z_1e^{\mathrm i t\theta})\overline{z_2e^{\mathrm i s\theta}}\right)
-=\operatorname{Re}\left(z_1\overline{z_2}e^{\mathrm i(t-s)\theta}\right).
+M_{ij}=\begin{cases}
+0,&j\le i,\\
+-\infty,&j>i,
+\end{cases}
+\qquad
+\mathbf{A}=\operatorname{softmax}_{\mathrm{row}}\left(
+\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}+\mathbf{M}\right).
 $$
 
-RoPE不是把一个位置向量加到输入：A4要求在**每层、每个注意力头的Query和Key上**应用旋转，Value不做这一步旋转。旋转保留各向量范数，改变与其他位置匹配时的相对相位。相对结构有助于缓解绝对位置分布变化，但不保证任意长上下文可靠外推。
+允许读取的位置加 0，保留原分数；后续位置加 $-\infty$，使其注意力权重为 0。
 
-## 5. 多头注意力与作业中的动机分析
+训练时正确输入已知，可以一次计算所有位置，再用掩码阻止读取未来。生成新文本时，下一个输入取决于模型刚选出的词，仍需逐词生成。
 
-### 5.1 多个独立的信息读取子空间
+### 4.2 编码器—解码器注意力
 
-**多头注意力（Multi-head Attention）**用多组不同的Q/K/V投影并行读取同一序列，让每个头形成自己的关注分布与Value表示，再组合结果。
+带掩码的自注意力让解码器读取已经输入的词；**交叉注意力（Cross-attention）**则让它读取编码器输出的词表示。
 
-令头数为$h$，模型宽度$d$，常取$d_k=d_v=d/h$：
+设编码器顶层在各源位置的输出为 $\mathbf{h}_1,\ldots,\mathbf{h}_n$，解码器经过带掩码自注意力处理后的各位置表示为 $\mathbf{z}_1,\ldots,\mathbf{z}_m$。交叉注意力从两侧分别计算查询、键和值：
 
-$$
-\operatorname{head}_r=\operatorname{Attention}(XW_Q^{(r)},XW_K^{(r)},XW_V^{(r)})\in\mathbb R^{n\times d_v},
-$$
+- **键 $\mathbf{k}_j$ 和值 $\mathbf{v}_j$ 来自编码器**：将每个源位置的表示 $\mathbf{h}_j$ 分别投影，得到用于匹配的键和用于汇总信息的值。
 
 $$
-\operatorname{MHA}(X)=\operatorname{Concat}(\operatorname{head}_1,\ldots,\operatorname{head}_h)W_O,
-\qquad W_O\in\mathbb R^{hd_v\times d}.
+\mathbf{k}_j=\mathbf{K}\mathbf{h}_j,\qquad
+\mathbf{v}_j=\mathbf{V}\mathbf{h}_j.
 $$
 
-每头有独立投影参数，但所有位置共享该头参数。拼接沿特征轴，不沿序列长度轴；输出投影混合各头信息并回到$d$维。
-
-![多头注意力独立投影读取后拼接并输出投影](figures/lecture08/multi-head-attention.png)
-
-批大小$B$时，投影结果常从$B\times n\times d$重排为$B\times h\times n\times d_k$；分数形状$B\times h\times n\times n$，Softmax仍沿最后的键位置维。$h$增大时每头宽度缩小，因此并非把$h$个完整$d$维单头成本原样叠加；但注意力权重矩阵有$h$份，不能据此忽略内存成本。
-
-### 5.2 A4：注意力为什么容易复制
-
-此题使用未缩放分数$e_i=k_i^Tq$。
-
-想复制$v_j$，需要$e_j$相对所有其他分数有足够大的正间隔：
+- **查询 $\mathbf{q}_i$ 来自解码器**：将当前目标位置的表示 $\mathbf{z}_i$ 投影为查询。
 
 $$
-\alpha_j=\frac1{1+\sum_{i\ne j}\exp(e_i-e_j)}\approx1,\qquad c=\sum_i\alpha_iv_i\approx v_j.
+\mathbf{q}_i=\mathbf{Q}\mathbf{z}_i.
 $$
 
-决定因素是相对分数，而不是$e_j$单独很大。若其他分数也同样大，仍会分散权重。
+这里的 $\mathbf{Q},\mathbf{K},\mathbf{V}$ 是可学习的投影矩阵；$\mathbf{q}_i,\mathbf{k}_j,\mathbf{v}_j$ 是投影后得到的查询、键和值向量。
 
-想平均$v_a,v_b$，假定键互相正交且单位范数，取：
+用目标位置的查询 $\mathbf{q}_i$ 与所有源位置的键 $\mathbf{k}_j$ 计算分数，经 Softmax 得到权重，再对源位置的值 $\mathbf{v}_j$ 加权求和。解码器计算交叉注意力时，可以对编码器输出的全部词表示计算权重并加权求和。
 
-$$
-q=\lambda(k_a+k_b),\qquad \lambda>0.
-$$
+![交叉注意力：解码器提供查询 Q，编码器提供键 K 和值 V](figures/lecture08/cross-attention.png)
 
-则$e_a=e_b=\lambda$、其余分数为0：
+### 4.3 解码器的层结构与输出概率
 
-$$
-\alpha_a=\alpha_b=\frac{e^\lambda}{2e^\lambda+n-2}\longrightarrow\frac12,\qquad
-c\longrightarrow\frac12(v_a+v_b).
-$$
+解码器先将右移后的输入词转换为词嵌入，加上位置编码，再送入第一层。每个解码器层依次执行：
 
-$\lambda$需使$e^\lambda$远大于$n-2$，且有限值不会让其他权重严格为零。若采用缩放点积，可相应增大查询系数以获得同样分数间隔。
+1. **带掩码的多头自注意力**：每个位置只能读取当前及更早的输入，不能读取后面的词。
+2. **第一次 Add & Norm**：将自注意力输出与本层输入相加，再做层归一化，得到第一个中间表示。
+3. **多头交叉注意力**：由第一个中间表示生成查询 $\mathbf{q}$，由编码器顶层输出生成键 $\mathbf{k}$ 和值 $\mathbf{v}$，计算对编码器信息的加权汇总。
+4. **第二次 Add & Norm**：将交叉注意力输出与第一个中间表示相加，再做层归一化，得到第二个中间表示。
+5. **逐位置前馈网络**：分别对各位置的第二个中间表示做非线性变换。
+6. **第三次 Add & Norm**：将前馈网络输出与第二个中间表示相加，再做层归一化，得到本层输出。
 
-### 5.3 单头对平衡扰动敏感，多头可以分开读取
+原始模型堆叠 6 个解码器层，各层具有自己的参数。上一层输出作为下一层输入；每一层的交叉注意力都读取同一组编码器顶层输出。
 
-键从均值$\mu_i$附近随机采样，均值互相正交且单位范数。各向同性噪声很小时，用$q=\lambda(\mu_a+\mu_b)$可近似平均两个值；需要噪声造成的分数差仍足够小，而两目标相对其他键的间隔足够大。不能在固定噪声下无条件把$\lambda$推到无穷大，因为它也会放大目标间的细小分数差。
-
-若$k_a$沿$\mu_a$方向有明显的长度波动，$e_a$会明显变化而$e_b$较稳定。即使两者仍远大于其他分数，二者权重比也为：
+顶层仍为每个输入位置保留一个 $d$ 维表示。随后，**Linear** 将它映射为词表大小 $|V|$ 的分数向量，**Softmax** 将分数转换为下一个词的概率分布：
 
 $$
-\frac{\alpha_a}{\alpha_b}=\exp(e_a-e_b).
+\boldsymbol{\ell}_t=\mathbf{W}_{\mathrm{vocab}}\mathbf{z}_t+\mathbf{b}_{\mathrm{vocab}}
+\in\mathbb{R}^{|V|},\qquad
+\hat{\mathbf{y}}_t=\operatorname{softmax}(\boldsymbol{\ell}_t).
 $$
 
-一次采样可能偏$v_a$，另一次偏$v_b$，输出不再稳定接近等权平均；Softmax的指数使维持两个分数精确平衡较脆弱。
+$\mathbf{z}_t$ 是顶层在位置 $t$ 的输出，$\boldsymbol{\ell}_t$ 中每个分量是一个候选词的分数，$\hat{\mathbf{y}}_t$ 中每个分量是对应词的预测概率。例如，词表有 1 万个词，概率向量就有 1 万个分量。训练时用正确的下一个词的概率计算交叉熵损失；生成时据此选择下一个词。
 
-A4用一个简化双头模型：$q_1=\lambda\mu_a$，$q_2=\lambda\mu_b$，最终输出为$(c_1+c_2)/2$。第一个头只需明显偏好$a$，第二个只需明显偏好$b$；在作业允许忽略目标匹配为负等异常情形、噪声不破坏各自胜出间隔时：
+![Transformer 编码器—解码器的完整结构](figures/lecture08/transformer-overview.png)
 
-$$
-c_1\approx v_a,\qquad c_2\approx v_b,\qquad \tfrac12(c_1+c_2)\approx\tfrac12(v_a+v_b).
-$$
+## 5. Transformer 的局限与改进
 
-这比一个Softmax内维持两个键同分更稳健。作业用两个头输出平均说明动机；真实Transformer是拼接加$W_O$，不是固定平均。该例不证明多头对任意噪声都稳健，也不要求每个头只能关注一个位置。
+### 5.1 长序列计算开销与位置表示
 
-## 6. 完整编码器与解码器
+**自注意力的计算量随序列长度平方增长。** 序列有 $n$ 个词，每个词的查询 $\mathbf{q}$ 都要与 $n$ 个键 $\mathbf{k}$ 比较，一共计算 $n^2$ 个分数。序列长度翻倍，分数数量就变为 4 倍，因此处理长序列的开销很大。
 
-### 6.1 编码器Block
+**绝对位置编码只直接表示词在第几个位置。** 词之间的前后距离或句法关系也可能有用，因此位置表示也是改进方向，例如相对位置表示、基于依存句法的位置表示和旋转位置编码（RoPE）。
 
-输入嵌入加位置后，通过多层独立参数的编码器Block。课件原图重复6次，是原始配置示例，不是定义要求。
+### 5.2 减少注意力计算的方法
 
-按Post-LN写第$\ell$层：
+**Linformer：先压缩键 K 和值 V 的位置数量。** 原本 $\mathbf{K}$ 和 $\mathbf{V}$ 各有 $n$ 行，每行对应一个词。Linformer 通过投影，将这 $n$ 行组合成较少的 $r$ 行，再让全部 $n$ 个查询 $\mathbf{q}$ 对这些压缩后的表示计算注意力。这样，分数矩阵由 $n\times n$ 变为 $n\times r$，其中 $r\ll n$。
 
-$$
-U^{(\ell)}=\operatorname{LN}_1\left(H^{(\ell-1)}+\operatorname{MHA}_{\mathrm{self}}(H^{(\ell-1)})\right),
-$$
-
-$$
-H^{(\ell)}=\operatorname{LN}_2\left(U^{(\ell)}+\operatorname{FFN}(U^{(\ell)})\right).
-$$
-
-为突出计算结构省略Dropout。编码器自注意力没有未来遮蔽，任一真实位置可读取整句；Padding Mask仍需阻止访问补齐位置。输出保留$n\times d$的逐位置上下文化表示，而非只留下一个句向量。
-
-### 6.2 解码器必须遮蔽未来
-
-训练目标为下一词预测，若允许当前位置读取后续真实目标，就会泄露答案。**因果／未来Mask（Causal / Future Mask）**在Softmax之前加到分数上：
-
-$$
-A=\operatorname{softmax}_{\mathrm{row}}\left(\frac{QK^T}{\sqrt{d_k}}+M\right),\qquad
-M_{ij}=\begin{cases}0,&j\le i,\\-\infty,&j>i.\end{cases}
-$$
-
-这里第$i$个输入位置可以看见自身与更早输入。目标序列已右移：输入为`<START>, y_1, ..., y_{T-1}`，输出标签为`y_1, ..., y_T`。因此看到当前输入不是看到本步标签。若采用不同下标约定，要同步调整不等号，不能脱离移位关系照抄。
-
-![因果Mask保留下三角与对角线并隐藏未来键](figures/lecture08/causal-mask.png)
-
-公式文本有损，正文按图中“隐藏未来”及随课讲义统一。
-
-整个分数矩阵可一次计算，再用三角Mask屏蔽未来；训练时无需为每个前缀分别重新运行一次网络。所有解码自注意力层都需要保持这一约束。因果Mask与Padding Mask用途不同，批处理时可能需要同时使用。
-
-数学上用$-\infty$表达禁止访问；实际实现可用库的布尔Mask或相应数值处理，避免出现整行无可访问位置。Mask施加在Softmax前，不能仅在最终输出上抹掉未来信息。
-
-### 6.3 编码器—解码器交叉注意力
-
-**交叉注意力（Cross-attention / Encoder–Decoder Attention）**使解码端访问源端记忆。编码器最终输出$H_x\in\mathbb R^{n\times d}$，解码器当前中间表示$D\in\mathbb R^{T\times d}$：
-
-$$
-Q=DW_Q,\qquad K=H_xW_K,\qquad V=H_xW_V,
-$$
-
-$$
-\operatorname{CrossAttn}(D,H_x)=\operatorname{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V.
-$$
-
-分数形状为$T\times n$：行是目标查询位置，列是源位置。Query来自解码器，Key和Value来自编码器；每个解码层通常有自己的投影，但读取的是编码器最顶层输出。
-
-![解码器提供查询编码器最终表示提供键和值](figures/lecture08/cross-attention.png)
-
-源句在翻译开始前已给定，因此不需按目标时间遮蔽未来源词；仍需源端Padding Mask。它与第7讲RNN解码器访问编码器的注意力角色相同，区别在于两侧表示由Transformer构建。
-
-### 6.4 解码Block与词表分布
-
-原始Encoder–Decoder Transformer的每个解码Block依次包含：
-
-1. 带因果Mask的多头自注意力，残差与LayerNorm。
-2. 到编码器输出的多头交叉注意力，残差与LayerNorm。
-3. 逐位置FFN，残差与LayerNorm。
-
-最后把$d$维隐藏表示线性映射到词表宽度，再做Softmax：
-
-$$
-\ell_t=W_{\mathrm{vocab}}h_t+b_{\mathrm{vocab}}\in\mathbb R^{|V_y|},\qquad
-p_t=\operatorname{softmax}(\ell_t).
-$$
-
-$\ell_t$是未归一化**Logits**，$p_t$才是概率。以正确下一词交叉熵训练；结束符与输入目标错位关系同第6讲。
-
-![原始Transformer编码器解码器完整结构](figures/lecture08/transformer-overview.png)
-
-随课讲义还区分三种用途：Encoder-only用于需要双向上下文的表示任务；Decoder-only保留因果自注意力、不需要独立源编码器和交叉注意力，用于自回归语言模型；Encoder–Decoder在源端双向编码后生成目标序列。课件本讲主要展示第三种，不能由“Decoder”一词推定所有模型都有交叉注意力。
-
-## 7. 二次成本与课件列出的变体
-
-为提纲，结束与行政提醒跳过。
-
-### 7.1 长序列的代价
-
-全自注意力对所有位置两两计算，分数矩阵为$n\times n$，交互计算约$O(n^2d)$。常规显式存储注意力权重的内存还随批大小、头数与层数增加。序列长度翻倍，单个头的权重矩阵元素数变成4倍。
-
-这与RNN随长度线性增长形成取舍：Transformer缩短依赖路径、改善训练并行性，却付出全连接交互成本。同时列位置表示问题：绝对索引是否最佳，能否用相对位置、句法或RoPE更好表达关系。
-
-### 7.2 Linformer：压缩序列维
-
-核心想法是把Key与Value的**序列长度维（Sequence-length Dimension）**投影到较小空间，再做注意力。若压缩后长度为$r\ll n$，查询可与$r$个压缩位置交互，而非$n$个原始位置。
-
-这与第7讲低秩双线性评分不同：那里投影查询／键的特征宽度，这里压缩Key/Value的序列轴。课件仅介绍动机和图表，不展开训练细节或未读出的速度数值。
-
-![Linformer压缩键和值的序列长度维](figures/lecture08/linformer.png)
-
-### 7.3 BigBird：改变连接模式
-
-BigBird用稀疏交互替代全部两两连接，包括**局部窗口（Local Windows）**、**全局连接（Global Interactions）**和**随机连接（Random Interactions）**。局部窗口保留邻近信息，全局节点帮助跨范围访问，随机连接增加其他远距离交互。课件不展开具体窗口宽度、理论证明或实现配置。
-
-![BigBird通过局部全局和随机交互减少全连接成本](figures/lecture08/bigbird.png)
-
-### 7.4 变体是否真的更好需要验证
-
-结论原文为“Surprisingly, we find that most modifications do not meaningfully improve performance.” 它提醒：结构改动在一个设置中有效，不代表自动迁移到其他任务与规模。应在相同数据、算力和评价条件下比较基线；不能只看一种理论复杂度就断言整体质量或实际速度更优。
-
-## 8. 作业4对应范围
-
-- Part 1，：复制、平均、键扰动与多头动机，见第5节。
-- Part 2，：置换等变证明、正弦位置编码及不同位置的区分，见第4节。
-- Part 3(g)，：RoPE旋转、复数等价、相对位置推导和在各层Q/K上的应用，见第4.4节。
-- Part 3其余内容及Part 4：预训练、Span Corruption、出生地知识访问与风险，随第9讲整理。本章不提前扩写。
-
-以上为课件与作业技术内容整理，未执行A4训练或报告模型分数。
+**BigBird：只保留一部分位置之间的注意力计算。** 大多数词只关注附近的词和少量随机选取的位置，另设少量全局位置与整段序列相连。这样仍能传递远距离信息，同时避免每个词都与全部词计算分数。
