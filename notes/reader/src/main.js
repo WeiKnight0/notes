@@ -42,7 +42,6 @@ const CODE_LANGUAGE_LABELS = {
   yml: 'YAML',
 };
 const HIGHLIGHT_LANGUAGES = {
-  asm: 'plaintext',
   bash: 'bash',
   c: 'c',
   cpp: 'cpp',
