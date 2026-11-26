@@ -96,12 +96,12 @@ function initializeFooter() {
 
 const SHELL_TEXT = {
   en: {
-    nav: { index: 'Index', templates: 'Templates', personal: 'Personal site ↗' },
+    nav: { index: 'Index', templates: 'Algorithm Templates', personal: 'Personal site ↗' },
     footer: { index: 'Notes index', templates: 'Algorithm templates' },
     parent: 'Back to parent',
   },
   'zh-cn': {
-    nav: { index: '目录', templates: '算法模板', personal: '个人主页 ↗' },
+    nav: { index: '目录', templates: 'Algorithm Templates', personal: '个人主页 ↗' },
     footer: { index: '笔记目录', templates: '算法模板' },
     parent: '返回上级',
   },
@@ -529,8 +529,19 @@ async function main() {
   const note = parseMarkdown(markdown);
   element('.content-section').classList.toggle('wide-content', note.wide);
   element('#note-layout').classList.toggle('wide-content', note.wide);
+  document.body.classList.toggle('directory-page', note.page === 'index');
   renderMetadata(note, path);
   element('#note-body').innerHTML = await renderMarkdown(path, note.body, SITE_BASE_PATH);
+  if (note.page === 'index') {
+    document.querySelectorAll('#note-body li').forEach((item) => {
+      const content = item.children.length === 1 && item.firstElementChild.matches('p')
+        ? item.firstElementChild : item;
+      if (content.children.length !== 1 || !content.firstElementChild.matches('a')) return;
+      if (Array.from(content.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim())) return;
+      item.classList.add('directory-entry');
+      content.firstElementChild.classList.add('directory-link');
+    });
+  }
   initializeOutline(note.page);
   initializeTools();
 }

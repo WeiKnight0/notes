@@ -8,7 +8,6 @@ page: index
 
 Currently available subjects:
 
-- [Algorithm Templates 算法模板速查](/notes/algorithm-templates/)
 - [Data Structures and Algorithms 数据结构与算法](./Data-Structures-and-Algorithms/index.md)
 - [Operating System](./Operating-System/index.md)
 - [Computer Networks 计算机网络](./Computer-Networks/index.md)
