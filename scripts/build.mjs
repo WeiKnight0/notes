@@ -92,7 +92,7 @@ for (const page of directoryPages) {
 }
 
 const dimensions = {};
-for (const asset of noteFiles.filter((file) => !/\.md$/i.test(file))) {
+for (const asset of noteFiles.filter((file) => !/\.md$/i.test(file) && path.posix.basename(file) !== 'directory.mjs')) {
   if (/\.(png|jpe?g|gif|webp|svg)$/i.test(asset)) {
     const size = imageDimensions(await fs.readFile(path.join(notesRoot, asset)));
     if (size?.width > 0 && size?.height > 0) dimensions[publicPath(base, asset)] = size;
