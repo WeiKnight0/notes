@@ -12,9 +12,11 @@
 .home-intro h1 { font-size: clamp(2.8rem, 6vw, 4.6rem); letter-spacing: -.055em; line-height: 1.1; margin: 1rem 0 1.4rem; }
 .home-intro h1 span { display: inline-block; margin-left: 1.25rem; font-size: .48em; font-weight: 500; letter-spacing: .02em; color: rgb(var(--shell-muted)); }
 .home-intro > p:last-of-type { font-size: 1rem; line-height: 1.9; color: rgb(var(--shell-muted)); }
-.catalog-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.3rem; margin-top: 1.5rem; color: rgb(var(--shell-muted)); font-size: .76rem; }
+.catalog-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1.5rem; color: rgb(var(--shell-muted)); font-size: .84rem; }
+.catalog-meta > span { padding: .3rem .65rem; border: 1px solid rgb(var(--shell-border) / .2); border-radius: 999px; background: rgb(var(--shell-surface) / .65); line-height: 1.5; }
+.subject-intro .catalog-eyebrow { font-size: .82rem; }
 .catalog-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-top: 1px solid rgb(var(--shell-border) / .2); padding: 1.2rem 0; }
-.catalog-section-heading h2 { font-size: 1rem; font-weight: 700; }
+.catalog-section-heading h2 { font-size: 1.25rem; font-weight: 700; }
 .catalog-section-heading > span { color: rgb(var(--shell-muted)); font-size: .76rem; }
 .subject-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.7rem; }
 .subject-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid rgb(var(--shell-border) / .17); border-radius: 12px; overflow: hidden; background: rgb(var(--shell-surface)); color: inherit; text-decoration: none; transition: border-color 160ms ease; }

@@ -2,6 +2,7 @@
 title: CS224N 第2讲：词向量、词义与神经分类器
 date: 2026-11-16
 lang: zh-cn
+parent: AI/#cs224n
 ---
 
 ## 1. 从预测上下文到使用词向量

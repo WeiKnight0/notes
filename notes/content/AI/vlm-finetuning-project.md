@@ -8,7 +8,7 @@ parent: AI/
 
 ## 项目目标
 
-在单机资源受限环境中，让预训练视觉编码器与小型因果语言模型完成领域图像问答。第一阶段只训练 Projector，第二阶段再按验证结果选择对 LLM 使用 [LoRA](./language-model-pretraining.md#lora)。
+在单机资源受限环境中，让预训练视觉编码器与小型因果语言模型完成领域图像问答。第一阶段只训练 Projector，第二阶段再按验证结果选择对 LLM 使用 [LoRA](./CS224N/12-efficient-training.md#33-lora-的低秩更新)。
 
 项目不是从零训练 VLM。冻结视觉编码器和大部分语言模型参数，把显存用于视觉 Token、语言激活和小型可训练模块。
 

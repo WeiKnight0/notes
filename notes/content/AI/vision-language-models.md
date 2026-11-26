@@ -266,7 +266,7 @@ print(inputs.shape)
 print((labels != -100).sum(dim=1))
 ```
 
-视觉位置和用户提示位置通常不计算语言建模损失，Assistant 回答位置才作为监督目标。实际实现还要按 Next-Token Prediction 向左错开标签，规则与普通 [SFT](./language-model-pretraining.md#sft-%E6%95%B0%E6%8D%AE%E6%A0%BC%E5%BC%8F)相同。
+视觉位置和用户提示位置通常不计算语言建模损失，Assistant 回答位置才作为监督目标。实际实现还要按 Next-Token Prediction 向左错开标签，规则与普通 [SFT](./CS224N/10-prompting-instruction-preferences.md#2-指令微调)相同。
 
 ### 两阶段训练
 

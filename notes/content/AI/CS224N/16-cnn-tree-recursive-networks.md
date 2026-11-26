@@ -2,6 +2,7 @@
 title: CS224N 第16讲：文本卷积网络与树递归神经网络
 date: 2026-11-16
 lang: zh-cn
+parent: AI/#cs224n
 ---
 
 ## 1. 文本卷积网络

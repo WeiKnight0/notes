@@ -2,6 +2,7 @@
 title: CS224N 第8讲：Transformer与自注意力
 date: 2026-11-16
 lang: zh-cn
+parent: AI/#cs224n
 ---
 
 ## 1. 从循环网络到 Transformer

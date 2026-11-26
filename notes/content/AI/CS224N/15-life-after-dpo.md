@@ -2,6 +2,7 @@
 title: CS224N 第15讲：DPO之后——奖励模型评价与偏好训练
 date: 2026-11-16
 lang: zh-cn
+parent: AI/#cs224n
 ---
 
 ## 1. 指令微调与偏好训练

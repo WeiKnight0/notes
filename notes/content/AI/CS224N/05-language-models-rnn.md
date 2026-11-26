@@ -2,6 +2,7 @@
 title: CS224N 第5讲：语言模型与循环神经网络
 date: 2026-11-16
 lang: zh-cn
+parent: AI/#cs224n
 ---
 
 ## 1. 神经网络的训练设置

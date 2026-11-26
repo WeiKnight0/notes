@@ -1,3 +1,5 @@
+import cs224n from './CS224N/directory.mjs';
+
 export default {
   "route": "AI",
   "title": "人工智能",
@@ -8,17 +10,6 @@ export default {
   "color": "#77885c",
   "tags": [],
   "groups": [
-    {
-      "id": "课程笔记",
-      "title": "课程笔记",
-      "art": "neural",
-      "entries": [
-        {
-          "title": "CS224N Spring 2024：自然语言处理与深度学习",
-          "route": "CS224N"
-        }
-      ]
-    },
     {
       "id": "机器学习基础",
       "title": "机器学习基础",
@@ -61,25 +52,7 @@ export default {
         }
       ]
     },
-    {
-      "id": "自然语言处理",
-      "title": "自然语言处理",
-      "art": "neural",
-      "entries": [
-        {
-          "title": "文本表示与语言建模",
-          "route": "AI/tokenization-and-language-modeling"
-        },
-        {
-          "title": "语言模型预训练与微调",
-          "route": "AI/language-model-pretraining"
-        },
-        {
-          "title": "文本生成与解码",
-          "route": "AI/text-generation"
-        }
-      ]
-    },
+    cs224n,
     {
       "id": "多模态学习",
       "title": "多模态学习",
@@ -149,7 +122,7 @@ export default {
       "id": "阅读路线",
       "title": "阅读路线",
       "art": "neural",
-      "html": "<ul>\n<li><strong>共同基础</strong>：机器学习理论 → 线性回归与分类 → 神经网络基础与训练机制；NumPy 与 PyTorch 可配合模型实现阅读。</li>\n<li><strong>语言模型</strong>：循环网络与序列建模 → Attention 与 Transformer → 文本表示与语言建模 → 语言模型预训练与微调 → 文本生成与解码。</li>\n<li><strong>多模态</strong>：卷积网络与视觉模型、Attention 与 Transformer → 学习范式中的对比学习 → CLIP 与图文对齐 → 图文融合与视觉语言模型；结合多模态任务与评价及项目实践。</li>\n<li><strong>强化学习</strong>：强化学习基础 → 多臂老虎机 → 价值估计与表格型控制 → DQN → 策略梯度与 Actor–Critic。</li>\n</ul>"
+      "html": "<ul>\n<li><strong>共同基础</strong>：机器学习理论 → 线性回归与分类 → 神经网络基础与训练机制；NumPy 与 PyTorch 可配合模型实现阅读。</li>\n<li><strong>语言模型</strong>：循环网络与序列建模 → Attention 与 Transformer → CS224N 各讲笔记。</li>\n<li><strong>多模态</strong>：卷积网络与视觉模型、Attention 与 Transformer → 学习范式中的对比学习 → CLIP 与图文对齐 → 图文融合与视觉语言模型；结合多模态任务与评价及项目实践。</li>\n<li><strong>强化学习</strong>：强化学习基础 → 多臂老虎机 → 价值估计与表格型控制 → DQN → 策略梯度与 Actor–Critic。</li>\n</ul>"
     }
   ]
 };

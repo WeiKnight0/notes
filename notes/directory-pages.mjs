@@ -6,7 +6,6 @@ import subject4 from './content/Computer-Organization/directory.mjs';
 import subject5 from './content/CSAPP/directory.mjs';
 import subject6 from './content/C-Language/directory.mjs';
 import subject7 from './content/AI/directory.mjs';
-import subject8 from './content/CS224N/directory.mjs';
 import subject9 from './content/Development-Environment/directory.mjs';
 
 export const directoryPages = [
@@ -18,6 +17,5 @@ export const directoryPages = [
   subject5,
   subject6,
   subject7,
-  subject8,
   subject9,
 ];

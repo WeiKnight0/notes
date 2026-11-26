@@ -34,13 +34,13 @@ test('standalone directories cover every note with valid routes under both site 
     }
   }
   const unlisted = notes.filter((note) => !linked.has(note.route)).map((note) => note.route);
-  assert.deepEqual(unlisted, ['CS224N/progress']);
+  assert.deepEqual(unlisted, ['AI/CS224N/progress']);
   assert.equal(new Set(directoryPages.map((page) => page.route)).size, directoryPages.length);
 });
 
 test('directories render aligned modules without duplicate numbering and retain prose', () => {
   const home = renderDirectory(directoryPages.find((page) => !page.route), notes, '/notes/');
-  assert.equal(collect(home, 'svg', 'aria-labelledby').length, 9);
+  assert.equal(collect(home, 'svg', 'aria-labelledby').length, 8);
   for (const page of directoryPages.filter((page) => page.route)) {
     const html = renderDirectory(page, notes, '/notes/');
     const labels = collect(html, 'svg', 'aria-labelledby');
