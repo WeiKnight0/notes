@@ -91,6 +91,16 @@ for (const page of directoryPages) {
   await fs.writeFile(destination, html);
 }
 
+const aboutBody = (await fs.readFile(path.join(root, 'notes/about.html'), 'utf8')).replaceAll('{{base}}', base);
+const aboutHtml = reader.replace(/<title>[\s\S]*?<\/title>/, '<title>About Notes | WeiKnight Notes</title>')
+  .replace('<body>', '<body class="catalog-page">')
+  .replace(/<main\b[\s\S]*?<\/main>/, aboutBody)
+  .replace('</head>', `<link rel="stylesheet" href="${publicPath(base, 'notes-reader/catalog.css')}"></head>`);
+if (routes.has('about')) throw new Error('Reserved page route: about');
+routes.add('about');
+await fs.mkdir(path.join(output, 'about'), { recursive: true });
+await fs.writeFile(path.join(output, 'about/index.html'), aboutHtml);
+
 const dimensions = {};
 for (const asset of noteFiles.filter((file) => !/\.md$/i.test(file) && path.posix.basename(file) !== 'directory.mjs')) {
   if (/\.(png|jpe?g|gif|webp|svg)$/i.test(asset)) {

@@ -86,6 +86,14 @@
 .catalog-supplement ul { margin-bottom: 0; }
 .catalog-page-note { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgb(var(--shell-border) / .2); color: rgb(var(--shell-muted)); font-size: .8rem; line-height: 1.8; }
 .catalog-page-note a { color: rgb(var(--shell-accent)); text-underline-offset: .25em; }
+.catalog-main.about-notes { width: min(100% - 4rem, 1040px); }
+@media (max-width: 760px) { .catalog-main.about-notes { width: calc(100% - 2rem); } }
+.catalog-main > header.about-heading { display: block; padding: .5rem 0 2rem; border-bottom: 1px solid rgb(var(--shell-border) / .2); }
+.about-heading p, .about-notes section { font-size: 1rem; line-height: 1.9; color: rgb(var(--shell-muted)); }
+.about-notes section { margin-top: 2rem; }
+.about-notes section h2 { margin-bottom: .75rem; color: rgb(var(--shell-text)); font-size: 1.25rem; line-height: 1.5; }
+.about-notes section p + p { margin-top: 1rem; }
+.about-notes ul { padding-left: 1.4rem; }
 .catalog-page .footer { margin-top: 0; }
 @media (max-width: 760px) {
   .catalog-main { width: min(100% - 2rem, 580px); padding-top: 1.5rem; }
