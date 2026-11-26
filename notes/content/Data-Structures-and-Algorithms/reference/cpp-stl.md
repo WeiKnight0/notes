@@ -2,9 +2,9 @@
 title: C++ STL C++ 标准库
 date: 2026-07-10
 lang: zh-cn
+page: content
+parent: Data-Structures-and-Algorithms/
 ---
-
-# C++ STL C++ 标准库
 
 这篇只记录常用数据结构在 C++ STL 中的写法，重点是函数名、默认行为和容易混淆的地方。
 
@@ -117,7 +117,7 @@ pq.push({dist, node});
 
 C++ 算法题里的链表通常手写节点，不建议记 `std::list`。`std::list` 的迭代器操作和题目中的节点指针模型不一致，复习收益不高。
 
-手写链表见：[Linked List 链表](../data-structures/linear-list/linked-list.md)。
+手写链表见：[Linked List 链表](../linear-list.md#linked-list-%E9%93%BE%E8%A1%A8)。
 
 # Hash Table / Hash Set 哈希表与哈希集合
 

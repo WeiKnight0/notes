@@ -231,6 +231,7 @@ function parseMarkdown(markdown) {
     lang: optionalScalar(match[1], 'lang'),
     page: pageKind(match[1]),
     wide: wideLayout(match[1]),
+    parent: optionalScalar(match[1], 'parent'),
     tags: tags(match[1]),
     body: markdown.slice(match[0].length),
   };
@@ -299,7 +300,7 @@ function renderMetadata(note, path) {
     return item;
   }));
   document.querySelectorAll('[data-notes-back]').forEach((link) => {
-    link.href = noteParent(path);
+    link.href = note.parent ? siteHref(note.parent) : noteParent(path);
     link.hidden = /^(?:index\.(?:md|mdx))$/i.test(path);
   });
 }

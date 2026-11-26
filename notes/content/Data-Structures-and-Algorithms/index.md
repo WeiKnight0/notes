@@ -5,51 +5,54 @@ page: index
 lang: zh-cn
 ---
 
-# Data Structures and Algorithms 数据结构与算法
+# 数据结构与算法
 
-## 一、[数据结构](./data-structures/index.md)
+## 数据结构
 
-- [绪论](./data-structures/introduction/index.md)
-- [线性表](./data-structures/linear-list/index.md)
-- [栈、队列和数组](./data-structures/stack-queue-array/index.md)
-- [串](./data-structures/string/index.md)
-- [树与二叉树](./data-structures/tree/index.md)
-- [图](./data-structures/graph/index.md)
-- [查找](./data-structures/searching/index.md)
-- [排序](./data-structures/sorting/index.md)
+- [绪论](./introduction.md)
+- [线性表](./linear-list.md)
+- [栈、队列和数组](./stack-queue-array.md)
+- [串](./string-basics.md)
+- [树与二叉树](./tree-basics.md)
+- [图](./graph-basics.md)
+- [Searching 查找](./searching.md)
+- [Sorting 排序](./sorting-structures.md)
 
-## 二、[算法基础](./algorithms/index.md)
+## 算法
 
-- [算法与复杂度](./algorithms/complexity/index.md)
-- [基础算法技巧](./algorithms/techniques/index.md)
-- [排序](./algorithms/sorting/index.md)
-- [链表算法](./algorithms/linked-list.md)
-- [树算法](./algorithms/tree/index.md)
-- [回溯](./algorithms/backtracking/index.md)
-- [图论算法](./algorithms/graph/index.md)
-- [动态规划](./algorithms/dynamic-programming/index.md)
-- [字符串算法](./algorithms/string/index.md)
-- [数学](./algorithms/math/index.md)
-- [高级数据结构](./algorithms/advanced-data-structures/index.md)
+- [Complexity Analysis 复杂度分析](./complexity.md)
+- [Techniques 算法技巧](./techniques.md)
+- [Sorting 排序](./sorting.md)
+- [External Sorting 外部排序](./external-sorting.md)
+- [Tree Algorithms 树算法](./tree.md)
+- [Backtracking 回溯算法](./backtracking.md)
+- [Graph 图论](./graph.md)
+- [Dynamic Programming 动态规划](./dynamic-programming.md)
+- [String 字符串](./string.md)
+- [Math 数学](./math.md)
+- [Advanced Data Structures 高级数据结构](./advanced-data-structures.md)
+- [Linked List Algorithms 链表算法](./linked-list-algorithms.md)
 
-## 三、[Hot 100 解析](./hot-100/index.md)
+## Hot 100 解析
 
-- [哈希](./hot-100/hashing/index.md)
-- [双指针](./hot-100/two-pointers/index.md)
-- [滑动窗口](./hot-100/sliding-window/index.md)
-- [子串](./hot-100/substring/index.md)
-- [普通数组](./hot-100/array/index.md)
-- [矩阵](./hot-100/matrix/index.md)
-- [链表](./hot-100/linked-list/index.md)
-- [二叉树](./hot-100/binary-tree/index.md)
-- [图论](./hot-100/graph/index.md)
-- [回溯](./hot-100/backtracking/index.md)
-- [二分查找](./hot-100/binary-search/index.md)
-- [栈](./hot-100/stack/index.md)
-- [堆](./hot-100/heap/index.md)
-- [贪心](./hot-100/greedy/index.md)
+- [哈希](./hot-100/hashing.md)
+- [双指针](./hot-100/two-pointers.md)
+- [滑动窗口](./hot-100/sliding-window.md)
+- [子串](./hot-100/substring.md)
+- [普通数组](./hot-100/array.md)
+- [矩阵](./hot-100/matrix.md)
+- [链表](./hot-100/linked-list.md)
+- [二叉树](./hot-100/binary-tree.md)
+- [图论](./hot-100/graph.md)
+- [回溯](./hot-100/backtracking.md)
+- [二分查找](./hot-100/binary-search.md)
+- [栈](./hot-100/stack.md)
+- [堆](./hot-100/heap.md)
+- [贪心](./hot-100/greedy.md)
 
-## 附录
+## 参考资料
 
-- [参考资料](./reference/index.md)
-- [算法模板速查](/notes/algorithm-templates/)
+- [C++ STL C++ 标准库](./reference/cpp-stl.md)
+- [LeetCode 技巧](./reference/hot-100.md)
+- [Java Library Java 常用库](./reference/java-library.md)
+- [Python Library Python 常用库](./reference/python-library.md)

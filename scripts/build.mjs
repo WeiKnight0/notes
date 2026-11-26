@@ -98,6 +98,15 @@ for (const asset of noteFiles.filter((file) => !/\.md$/i.test(file))) {
 }
 await fs.writeFile(path.join(output, 'image-dimensions.json'), JSON.stringify(dimensions));
 await fs.cp(path.join(root, 'notes/algorithm-templates/dist'), path.join(output, 'algorithm-templates'), { recursive: true });
+const redirects = JSON.parse(await fs.readFile(path.join(root, 'notes/redirects.json'), 'utf8'));
+for (const [oldRoute, target] of Object.entries(redirects)) {
+  if (routes.has(oldRoute)) continue;
+  const [targetRoute, fragment] = target.split('#');
+  const targetUrl = publicPath(base, targetRoute + '/') + (fragment ? `#${fragment}` : '');
+  const destination = path.join(output, oldRoute, 'index.html');
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  await fs.writeFile(destination, '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>笔记已迁移</title><link rel="canonical" href="' + escapeHtml(targetUrl) + '"><script>location.replace(' + JSON.stringify(targetUrl) + ')</script><p><a href="' + escapeHtml(targetUrl) + '">前往笔记</a></p></html>');
+}
 await fs.writeFile(path.join(output, '404.html'), '<!doctype html><html lang="en"><meta charset="utf-8"><title>Page not found | Notes</title><meta name="viewport" content="width=device-width,initial-scale=1"><main><h1>Page not found</h1><p><a href="' + escapeHtml(base) + '">Return to Notes</a></p></main></html>');
 await fs.writeFile(path.join(output, '.nojekyll'), '');
 await fs.writeFile(path.join(output, 'site-build.json'), `${JSON.stringify({ base, site: site.origin, mainSite: mainSiteUrl.href, notes: notes.length }, null, 2)}\n`);
