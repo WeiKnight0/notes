@@ -13,8 +13,8 @@ import remarkNoteLinks from './remark-note-links.mjs';
 import rehypeNoteLinks from './rehype-note-links.mjs';
 
 /** Shared with static verification; markdown is the body after front matter. */
-export async function renderMarkdown(sourcePath, markdown, siteBasePath = '/') {
-  const options = { sourcePath, siteBasePath };
+export async function renderMarkdown(sourcePath, markdown, siteBasePath = '/', imageSizes = {}) {
+  const options = { sourcePath, siteBasePath, imageSizes };
   return String(await unified()
     .use(remarkParse)
     .use(remarkGfm)

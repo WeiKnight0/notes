@@ -2,9 +2,9 @@
 title: Java Library Java 常用库
 date: 2026-07-10
 lang: zh-cn
+page: content
+parent: Data-Structures-and-Algorithms/
 ---
-
-# Java Library Java 常用库
 
 这篇只记录常用数据结构在 Java 标准库中的写法，重点是类名、函数名、默认行为和容易混淆的地方。
 

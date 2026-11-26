@@ -94,80 +94,6 @@ function initializeFooter() {
   element('#footer-records').append(link);
 }
 
-const SHELL_TEXT = {
-  en: {
-    nav: { index: 'Index', templates: 'Templates', personal: 'Personal site ↗' },
-    footer: { index: 'Notes index', templates: 'Algorithm templates' },
-    parent: 'Back to parent',
-  },
-  'zh-cn': {
-    nav: { index: '目录', templates: '算法模板', personal: '个人主页 ↗' },
-    footer: { index: '笔记目录', templates: '算法模板' },
-    parent: '返回上级',
-  },
-};
-
-function applyShellLocale(locale) {
-  const text = SHELL_TEXT[locale];
-  document.documentElement.lang = locale === 'zh-cn' ? 'zh-CN' : 'en';
-  document.querySelectorAll('[data-nav-i18n]').forEach((item) => {
-    item.textContent = text.nav[item.dataset.navI18n];
-  });
-  document.querySelectorAll('[data-footer-i18n]').forEach((item) => {
-    item.textContent = text.footer[item.dataset.footerI18n];
-  });
-  const parent = element('[data-notes-back]');
-  parent.title = text.parent;
-  parent.querySelector('.outline-parent-label').textContent = text.parent;
-  document.querySelectorAll('[data-language-current]').forEach((item) => {
-    item.textContent = locale === 'zh-cn' ? '简体中文' : 'English';
-  });
-  document.querySelectorAll('[data-language-link]').forEach((link) => {
-    link.toggleAttribute('aria-current', link.dataset.targetLocale === locale);
-    if (link.hasAttribute('aria-current')) link.setAttribute('aria-current', 'true');
-    link.href = window.location.pathname + window.location.search + window.location.hash;
-  });
-}
-
-function initializeSiteLinks() {
-  applyShellLocale(localStorage.getItem('site-locale') === 'zh-cn' ? 'zh-cn' : 'en');
-  document.querySelectorAll('[data-language-link]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      localStorage.setItem('site-locale', link.dataset.targetLocale);
-      applyShellLocale(link.dataset.targetLocale);
-    });
-  });
-}
-
-function initializeDropdowns() {
-  const dropdowns = Array.from(document.querySelectorAll('details[data-dropdown]'));
-  dropdowns.forEach((dropdown) => {
-    const summary = dropdown.querySelector('summary');
-    dropdown.addEventListener('toggle', () => {
-      summary.setAttribute('aria-expanded', String(dropdown.open));
-      if (dropdown.open) dropdowns.filter((other) => other !== dropdown)
-        .forEach((other) => { other.open = false; });
-    });
-  });
-  document.addEventListener('pointerdown', (event) => {
-    dropdowns.forEach((dropdown) => {
-      if (!dropdown.contains(event.target)) dropdown.open = false;
-    });
-  });
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element) || event.target.closest('summary')) return;
-    event.target.closest('details[data-dropdown]')?.removeAttribute('open');
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    const dropdown = dropdowns.find((item) => item.open);
-    if (!dropdown) return;
-    dropdown.open = false;
-    dropdown.querySelector('summary').focus();
-  });
-}
-
 function noteSource() {
   const source = element('meta[name="note-source"]')?.content?.trim();
   const path = element('meta[name="note-path"]')?.content?.trim();
@@ -231,6 +157,7 @@ function parseMarkdown(markdown) {
     lang: optionalScalar(match[1], 'lang'),
     page: pageKind(match[1]),
     wide: wideLayout(match[1]),
+    parent: optionalScalar(match[1], 'parent'),
     tags: tags(match[1]),
     body: markdown.slice(match[0].length),
   };
@@ -239,9 +166,9 @@ function parseMarkdown(markdown) {
 function languageLabel(lang) {
   return {
     en: 'Language: English',
-    'zh-cn': 'Language: 简体中文',
-    'zh-tw': 'Language: 繁體中文',
-    'zh-hk': 'Language: 繁體中文(香港)',
+    'zh-cn': 'Language: Simplified Chinese',
+    'zh-tw': 'Language: Traditional Chinese',
+    'zh-hk': 'Language: Traditional Chinese (Hong Kong)',
   }[lang] ?? 'Language: Other Language';
 }
 
@@ -288,7 +215,7 @@ function renderMetadata(note, path) {
   element('#note-title').textContent = note.title;
   element('#note-date').dateTime = new Date(note.date).toISOString();
   element('#note-date').textContent = new Intl.DateTimeFormat(
-    note.lang === 'zh-cn' ? 'zh-CN' : 'en',
+    'en',
     { dateStyle: 'long' },
   ).format(new Date(note.date));
   element('#note-language').textContent = languageLabel(note.lang);
@@ -299,7 +226,7 @@ function renderMetadata(note, path) {
     return item;
   }));
   document.querySelectorAll('[data-notes-back]').forEach((link) => {
-    link.href = noteParent(path);
+    link.href = note.parent ? siteHref(note.parent) : noteParent(path);
     link.hidden = /^(?:index\.(?:md|mdx))$/i.test(path);
   });
 }
@@ -464,8 +391,9 @@ function prepareCodeBlock(pre) {
 function initializeTheme() {
   const updateToggle = () => {
     const dark = document.documentElement.dataset.theme === 'dark';
-    element('#theme-icon').setAttribute('href', iconHref(dark ? 'sun' : 'moon'));
-    element('#toggle-dark span').textContent = dark ? 'Light Mode' : 'Dark Mode';
+    element('#theme-icon')?.setAttribute('href', iconHref(dark ? 'sun' : 'moon'));
+    const toolLabel = element('#toggle-dark span');
+    if (toolLabel) toolLabel.textContent = dark ? 'Light Mode' : 'Dark Mode';
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
       const action = dark ? 'Switch to light theme' : 'Switch to dark theme';
       button.setAttribute('aria-label', action);
@@ -508,29 +436,46 @@ function initializeTools() {
 
 async function main() {
   initializeFooter();
-  initializeSiteLinks();
-  initializeDropdowns();
   initializeTheme();
+  if (document.body.classList.contains('catalog-page')) return;
   const { source, path } = noteSource();
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20000);
   let markdown;
+  let imageSizes;
   try {
+    const dimensionsRequest = fetch(`${SITE_BASE_PATH}image-dimensions.json`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Image dimensions could not be loaded (HTTP ${response.status}).`);
+        return response.json();
+      });
     const response = await fetch(source, { signal: controller.signal });
     if (!response.ok) {
       throw new Error(response.status === 404
         ? 'The Markdown source for this note could not be found.'
         : `The note could not be downloaded (HTTP ${response.status}).`);
     }
-    markdown = await response.text();
+    [markdown, imageSizes] = await Promise.all([response.text(), dimensionsRequest]);
   } finally {
     window.clearTimeout(timeout);
   }
   const note = parseMarkdown(markdown);
   element('.content-section').classList.toggle('wide-content', note.wide);
   element('#note-layout').classList.toggle('wide-content', note.wide);
+  document.body.classList.toggle('directory-page', note.page === 'index');
+  document.body.classList.toggle('content-page', note.page === 'content');
   renderMetadata(note, path);
-  element('#note-body').innerHTML = await renderMarkdown(path, note.body, SITE_BASE_PATH);
+  element('#note-body').innerHTML = await renderMarkdown(path, note.body, SITE_BASE_PATH, imageSizes);
+  if (note.page === 'index') {
+    document.querySelectorAll('#note-body li').forEach((item) => {
+      const content = item.children.length === 1 && item.firstElementChild.matches('p')
+        ? item.firstElementChild : item;
+      if (content.children.length !== 1 || !content.firstElementChild.matches('a')) return;
+      if (Array.from(content.childNodes).some((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim())) return;
+      item.classList.add('directory-entry');
+      content.firstElementChild.classList.add('directory-link');
+    });
+  }
   initializeOutline(note.page);
   initializeTools();
 }

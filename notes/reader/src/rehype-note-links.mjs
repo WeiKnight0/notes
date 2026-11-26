@@ -25,6 +25,13 @@ export default function rehypeNoteLinks(options = {}) {
           node.properties[property] = rewrite(node.properties[property], { asset: true });
         }
       }
+      if (node.tagName === 'img') {
+        const size = options.imageSizes?.[node.properties.src];
+        if (size && !node.properties.width && !node.properties.height) {
+          node.properties.width = size.width;
+          node.properties.height = size.height;
+        }
+      }
     });
   };
 }

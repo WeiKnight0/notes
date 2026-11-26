@@ -1,6 +1,6 @@
 const templateIndex = window.ALGORITHM_TEMPLATE_INDEX;
 if (!Array.isArray(templateIndex)) throw new Error('Algorithm template index is missing.');
-const state = { query: '', category: '全部' };
+const state = { query: '', category: 'All' };
 
 const pageType = document.body.dataset.page;
 const siteRoot = new URL(document.body.dataset.siteRoot || './', window.location.href);
@@ -38,7 +38,7 @@ function getFilteredItems() {
   const query = state.query.trim().toLowerCase();
 
   return templateIndex.filter((item) => {
-    const categoryMatched = state.category === '全部' || item.category === state.category;
+    const categoryMatched = state.category === 'All' || item.category === state.category;
     const queryMatched = query === '' || getSearchText(item).includes(query);
     return categoryMatched && queryMatched;
   });
@@ -53,10 +53,10 @@ function renderCategories() {
     return map;
   }, {});
 
-  const categories = ['全部', ...Object.keys(counts).sort((a, b) => a.localeCompare(b, 'zh-CN'))];
+  const categories = ['All', ...Object.keys(counts).sort((a, b) => a.localeCompare(b, 'zh-CN'))];
   categoryList.innerHTML = categories
     .map((category) => {
-      const count = category === '全部' ? templateIndex.length : counts[category];
+      const count = category === 'All' ? templateIndex.length : counts[category];
       const active = category === state.category ? ' active' : '';
       return `<button class="category-button${active}" type="button" data-category="${escapeHtml(category)}">
         <span>${escapeHtml(category)}</span>
@@ -91,15 +91,15 @@ function renderTemplateCards() {
         <div class="card-body">
           <div class="meta-grid compact">
             <div class="meta-block">
-              <div class="meta-label">常见题</div>
+              <div class="meta-label">Related problems</div>
               <div class="meta-value">${escapeHtml(item.problems.join('，'))}</div>
             </div>
             <div class="meta-block">
-              <div class="meta-label">关键词</div>
+              <div class="meta-label">Keywords</div>
               <div class="meta-value">${escapeHtml(item.keywords.join('，'))}</div>
             </div>
           </div>
-          <a class="open-link" href="./${escapeHtml(item.path)}">打开模板</a>
+          <a class="open-link" href="./${escapeHtml(item.path)}">Open template</a>
         </div>
       </article>`;
     })
@@ -110,7 +110,7 @@ function setupIndexPage() {
   const searchInput = document.getElementById('template-search');
   const resetButton = document.getElementById('reset-filters');
   const categoryList = document.getElementById('category-list');
-  const knownCategories = ['全部', ...new Set(templateIndex.map((item) => item.category))];
+  const knownCategories = ['All', ...new Set(templateIndex.map((item) => item.category))];
 
   const initialHash = decodeHash();
   if (initialHash && knownCategories.includes(initialHash)) {
@@ -135,7 +135,7 @@ function setupIndexPage() {
 
   resetButton?.addEventListener('click', () => {
     state.query = '';
-    state.category = '全部';
+    state.category = 'All';
     if (searchInput) searchInput.value = '';
     window.location.hash = encodeHash(state.category);
     renderCategories();
@@ -175,7 +175,7 @@ function restoreHashPosition() {
 }
 
 function setupTemplateBackLinks() {
-  const storedCategory = window.sessionStorage.getItem(categoryStorageKey) || '全部';
+  const storedCategory = window.sessionStorage.getItem(categoryStorageKey) || 'All';
   const categoryHash = encodeHash(storedCategory);
 
   document.querySelectorAll('a[href="../index.html"]').forEach((link) => {
@@ -193,17 +193,17 @@ function setupCopyButtons() {
     const button = document.createElement('button');
     button.className = 'copy-button';
     button.type = 'button';
-    button.textContent = '复制';
+    button.textContent = 'Copy';
     button.addEventListener('click', async () => {
       try {
         const text = 'value' in code ? code.value : code.textContent;
         await navigator.clipboard.writeText(text.trim());
-        button.textContent = '已复制';
+        button.textContent = 'Copied';
       } catch {
-        button.textContent = '复制失败';
+        button.textContent = 'Copy failed';
       }
       window.setTimeout(() => {
-        button.textContent = '复制';
+        button.textContent = 'Copy';
       }, 1200);
     });
 
@@ -223,7 +223,7 @@ async function downloadSiteZip() {
   if (!downloadButton) return;
   if (downloadButton.dataset.busy === 'true') return;
   if (typeof JSZip === 'undefined') {
-    window.alert('JSZip 加载失败，无法生成压缩包。');
+    window.alert('JSZip could not load. Unable to create ZIP.');
     return;
   }
 
@@ -240,7 +240,7 @@ async function downloadSiteZip() {
   const originalText = downloadButton.textContent;
   downloadButton.dataset.busy = 'true';
   downloadButton.setAttribute('aria-disabled', 'true');
-  downloadButton.textContent = '打包中...';
+  downloadButton.textContent = 'Preparing ZIP...';
 
   try {
     for (const file of files) {
@@ -260,7 +260,7 @@ async function downloadSiteZip() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch (error) {
     console.error(error);
-    window.alert('压缩包生成失败，请稍后重试。');
+    window.alert('Could not create the ZIP. Please try again.');
   } finally {
     downloadButton.dataset.busy = 'false';
     downloadButton.removeAttribute('aria-disabled');

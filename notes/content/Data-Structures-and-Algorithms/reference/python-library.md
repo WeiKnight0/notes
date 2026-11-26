@@ -2,9 +2,9 @@
 title: Python Library Python 常用库
 date: 2026-07-10
 lang: zh-cn
+page: content
+parent: Data-Structures-and-Algorithms/
 ---
-
-# Python Library Python 常用库
 
 这篇只记录常用数据结构在 Python 中的写法，重点是函数名、默认行为和容易混淆的地方。
 
