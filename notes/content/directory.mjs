@@ -3,7 +3,7 @@ export default {
   "title": "WeiKnight's Study Notes",
   "date": "2025-07-29T15:29:52",
   "tags": [],
-  "description": "计算机基础、算法与人工智能。按学科整理，连接概念、代码与实践。",
+  "description": "Computer science fundamentals, algorithms, and artificial intelligence. Organized by subject, connecting concepts, code, and practice.",
   "cover": "notes-reader/study-hero.svg",
   "resources": [
     {
