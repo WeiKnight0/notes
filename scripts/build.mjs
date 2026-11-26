@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import YAML from 'yaml';
+import { imageDimensions } from './image-dimensions.mjs';
 import { escapeHtml, filesUnder, normalizeBase, noteRoute, output, publicPath, root } from './site.mjs';
 
 const base = normalizeBase(process.env.SITE_BASE_PATH || '/notes/');
@@ -76,7 +77,12 @@ for (const note of notes) {
   await fs.copyFile(path.join(notesRoot, note.source), sourceDestination);
 }
 
+const dimensions = {};
 for (const asset of noteFiles.filter((file) => !/\.md$/i.test(file))) {
+  if (/\.(png|jpe?g|gif|webp|svg)$/i.test(asset)) {
+    const size = imageDimensions(await fs.readFile(path.join(notesRoot, asset)));
+    if (size?.width > 0 && size?.height > 0) dimensions[publicPath(base, asset)] = size;
+  }
   if (['_sources', 'algorithm-templates'].includes(asset.split('/')[0])) {
     throw new Error(`Note asset uses a reserved path: ${asset}`);
   }
@@ -90,6 +96,7 @@ for (const asset of noteFiles.filter((file) => !/\.md$/i.test(file))) {
   await fs.mkdir(path.dirname(destination), { recursive: true });
   await fs.copyFile(path.join(notesRoot, asset), destination);
 }
+await fs.writeFile(path.join(output, 'image-dimensions.json'), JSON.stringify(dimensions));
 await fs.cp(path.join(root, 'notes/algorithm-templates/dist'), path.join(output, 'algorithm-templates'), { recursive: true });
 await fs.writeFile(path.join(output, '404.html'), '<!doctype html><html lang="en"><meta charset="utf-8"><title>Page not found | Notes</title><meta name="viewport" content="width=device-width,initial-scale=1"><main><h1>Page not found</h1><p><a href="' + escapeHtml(base) + '">Return to Notes</a></p></main></html>');
 await fs.writeFile(path.join(output, '.nojekyll'), '');

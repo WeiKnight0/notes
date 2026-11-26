@@ -515,14 +515,20 @@ async function main() {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20000);
   let markdown;
+  let imageSizes;
   try {
+    const dimensionsRequest = fetch(`${SITE_BASE_PATH}image-dimensions.json`, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Image dimensions could not be loaded (HTTP ${response.status}).`);
+        return response.json();
+      });
     const response = await fetch(source, { signal: controller.signal });
     if (!response.ok) {
       throw new Error(response.status === 404
         ? 'The Markdown source for this note could not be found.'
         : `The note could not be downloaded (HTTP ${response.status}).`);
     }
-    markdown = await response.text();
+    [markdown, imageSizes] = await Promise.all([response.text(), dimensionsRequest]);
   } finally {
     window.clearTimeout(timeout);
   }
@@ -532,7 +538,7 @@ async function main() {
   document.body.classList.toggle('directory-page', note.page === 'index');
   document.body.classList.toggle('content-page', note.page === 'content');
   renderMetadata(note, path);
-  element('#note-body').innerHTML = await renderMarkdown(path, note.body, SITE_BASE_PATH);
+  element('#note-body').innerHTML = await renderMarkdown(path, note.body, SITE_BASE_PATH, imageSizes);
   if (note.page === 'index') {
     document.querySelectorAll('#note-body li').forEach((item) => {
       const content = item.children.length === 1 && item.firstElementChild.matches('p')
