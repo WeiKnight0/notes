@@ -55,24 +55,24 @@
 /* 暗黑模式变量 */
 [data-theme="dark"] {
     color-scheme: dark;
-    --shell-bg: 25 32 32;
-    --shell-surface: 34 43 42;
-    --shell-text: 234 243 239;
-    --shell-muted: 167 185 179;
-    --shell-border: 213 235 226;
-    --shell-accent: 111 211 186;
-    --primary-color: #6fd3ba;
-    --secondary-color: #adbfba;
-    --text-color: #eaf3ef;
-    --light-bg: #263633;
-    --white: #2b3c38;
+    --shell-bg: 32 34 38;
+    --shell-surface: 38 41 46;
+    --shell-text: 211 215 221;
+    --shell-muted: 164 173 184;
+    --shell-border: 173 184 198;
+    --shell-accent: 143 189 203;
+    --primary-color: #8fbdcb;
+    --secondary-color: #a4adb8;
+    --text-color: #c6cbd3;
+    --light-bg: #2b3037;
+    --white: #26292e;
 
     /* 代码高亮特定颜色 */
-    --code-bg: #282c34;
-    --code-text: #abb2bf;
+    --code-bg: #25282e;
+    --code-text: #c3c9d2;
     --code-border: #444c56;
-    --code-line-number: #768390;
-    --code-line-highlight: rgba(99, 110, 123, 0.4);
+    --code-line-number: #939daa;
+    --code-line-highlight: rgba(143, 158, 177, 0.12);
     --code-toolbar-bg: #20252d;
     --code-toolbar-border: #3b424d;
     --code-toolbar-text: #b8c2cf;
@@ -86,7 +86,7 @@
     --code-type: #e5c07b;
     --code-string: #98c379;
     --code-number: #d19a66;
-    --code-comment: #5c6370;
+    --code-comment: #939daa;
     --code-function: #61afef;
     --code-constant: #56b6c2;
     --code-tag: #e06c75;
@@ -588,8 +588,13 @@ table tr:last-child td {
 }
 
 [data-theme="dark"] table th {
-    background: var(--primary-color);
+    background: var(--light-bg);
+    color: var(--text-color);
     border-bottom-color: var(--primary-color);
+}
+
+[data-theme="dark"] .chapter-content a:hover {
+    color: #b0d2dd;
 }
 
 /* 响应式优化 */
