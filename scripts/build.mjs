@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import YAML from 'yaml';
+import { renderDirectory } from './directory-pages.mjs';
+import { directoryPages } from '../notes/directory-pages.mjs';
 import { imageDimensions } from './image-dimensions.mjs';
 import { escapeHtml, filesUnder, normalizeBase, noteRoute, output, publicPath, root } from './site.mjs';
 
@@ -18,8 +20,8 @@ try {
 } catch (error) {
   throw new Error('Cannot read notes/content. Restore the notes/content directory from the website repository.', { cause: error });
 }
-if (!noteFiles.includes('index.md')) {
-  throw new Error('notes/content/index.md is missing. Restore the notes/content directory from the website repository.');
+if (!directoryPages.some((page) => page.route === '')) {
+  throw new Error('The directory configuration must include a home page.');
 }
 
 const notes = [];
@@ -38,7 +40,7 @@ for (const source of noteFiles.filter((file) => /\.md$/i.test(file))) {
       || Number.isNaN(Date.parse(String(metadata.date)))) {
     throw new Error(`Note needs a title and valid date in front matter: ${source}`);
   }
-  notes.push({ source, route, title: metadata.title });
+  notes.push({ ...metadata, source, route, body: markdown.slice(frontmatter[0].length) });
 }
 
 const mainSiteUrl = new URL(process.env.MAIN_SITE_URL || 'https://weiknight0.github.io/');
@@ -67,7 +69,7 @@ for (const note of notes) {
   const sourceUrl = publicPath(base, `_sources/${note.source}`);
   const head = `<meta name="note-source" content="${escapeHtml(sourceUrl)}">\n`
     + `<meta name="note-path" content="${escapeHtml(note.source)}">\n`;
-  const html = reader.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(note.title)} | WeiKnight Notes</title>`)
+  let html = reader.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(note.title)} | WeiKnight Notes</title>`)
     .replace('</head>', `${head}</head>`);
   const destination = path.join(output, note.route, 'index.html');
   await fs.mkdir(path.dirname(destination), { recursive: true });
@@ -75,6 +77,18 @@ for (const note of notes) {
   const sourceDestination = path.join(output, '_sources', note.source);
   await fs.mkdir(path.dirname(sourceDestination), { recursive: true });
   await fs.copyFile(path.join(notesRoot, note.source), sourceDestination);
+}
+
+for (const page of directoryPages) {
+  if (routes.has(page.route)) throw new Error(`Duplicate directory route: ${page.route}`);
+  routes.add(page.route);
+  const html = reader.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(page.title)} | WeiKnight Notes</title>`)
+    .replace('<body>', '<body class="catalog-page">')
+    .replace(/<main\b[\s\S]*?<\/main>/, renderDirectory(page, notes, base))
+    .replace('</head>', `<link rel="stylesheet" href="${publicPath(base, 'notes-reader/catalog.css')}"></head>`);
+  const destination = path.join(output, page.route, 'index.html');
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  await fs.writeFile(destination, html);
 }
 
 const dimensions = {};

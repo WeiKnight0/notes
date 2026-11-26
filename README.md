@@ -18,7 +18,8 @@ npm run preview
 
 ## 内容与产物
 
-- `notes/content/`：笔记 Markdown 和配图。`index.md` 是笔记首页，其他 Markdown 文件以同名目录发布，例如 `CSAPP/index.md` 对应 `/notes/CSAPP/`。
+- `notes/content/`：正文笔记 Markdown 和配图，例如 `CSAPP/01-computer-systems-tour.md` 对应 `/notes/CSAPP/01-computer-systems-tour/`。
+- `notes/directory-pages.mjs`：首页与学科目录的唯一数据源，配置路径、标题、日期、插图、分组及笔记入口；`groups[].html` 可直接写说明文字的 HTML，站内资源路径以 `{{base}}` 表示部署前缀。目录由 `scripts/directory-pages.mjs` 与 `notes/reader/public/catalog.css` 生成，不读取 Markdown。
 - `notes/reader/`：阅读器，支持目录、公式、代码高亮和打印；更多说明见 `notes/reader/README.md`。
 - `notes/algorithm-templates/content/`：算法模板内容；编辑规范见 `notes/algorithm-templates/README.md`。
 - `scripts/`：构建、预览及静态校验脚本。

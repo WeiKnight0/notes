@@ -391,8 +391,9 @@ function prepareCodeBlock(pre) {
 function initializeTheme() {
   const updateToggle = () => {
     const dark = document.documentElement.dataset.theme === 'dark';
-    element('#theme-icon').setAttribute('href', iconHref(dark ? 'sun' : 'moon'));
-    element('#toggle-dark span').textContent = dark ? 'Light Mode' : 'Dark Mode';
+    element('#theme-icon')?.setAttribute('href', iconHref(dark ? 'sun' : 'moon'));
+    const toolLabel = element('#toggle-dark span');
+    if (toolLabel) toolLabel.textContent = dark ? 'Light Mode' : 'Dark Mode';
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
       const action = dark ? 'Switch to light theme' : 'Switch to dark theme';
       button.setAttribute('aria-label', action);
@@ -436,6 +437,7 @@ function initializeTools() {
 async function main() {
   initializeFooter();
   initializeTheme();
+  if (document.body.classList.contains('catalog-page')) return;
   const { source, path } = noteSource();
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20000);
