@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,12 +14,12 @@
       <div class="header-inner">
         <a class="brand" href="{{SITE_BASE_PATH}}"><img class="brand-mark" src="{{SITE_BASE_PATH}}notes-mark.svg" alt="" width="32" height="32" /><span>WeiKnight Notes</span></a>
         <nav class="top-nav" aria-label="Notes navigation">
-          <a href="{{SITE_BASE_PATH}}">目录</a>
+          <a href="{{SITE_BASE_PATH}}">Index</a>
           <a href="{{SITE_BASE_PATH}}algorithm-templates/" aria-current="page">Algorithm Templates</a>
         </nav>
         <div class="header-actions">
-          <a class="main-site-link" href="{{MAIN_SITE_URL}}" target="_blank" rel="noopener noreferrer">个人主页 ↗</a>
-          <button class="theme-toggle" type="button" aria-label="切换颜色主题" title="切换颜色主题"><span aria-hidden="true">☼</span></button>
+          <a class="main-site-link" href="{{MAIN_SITE_URL}}" target="_blank" rel="noopener noreferrer">Personal site ↗</a>
+          <button class="theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme"><span aria-hidden="true">☼</span></button>
         </div>
       </div>
     </header>
@@ -32,19 +32,19 @@
         </div>
         <div class="hero-actions">
           <label class="search-box" for="template-search">
-            <span>搜索</span>
-            <input id="template-search" type="search" placeholder="滑动窗口、DSU、LIS、Hot100 3..." autocomplete="off" />
+            <span>Search</span>
+            <input id="template-search" type="search" placeholder="Sliding window, DSU, LIS, Hot100 3..." autocomplete="off" />
           </label>
           <div class="hero-commands">
-            <button id="reset-filters" class="ghost-button" type="button">全部模板</button>
-            <a id="download-page" class="download-button" href="#" role="button">下载网页压缩包</a>
+            <button id="reset-filters" class="ghost-button" type="button">All templates</button>
+            <a id="download-page" class="download-button" href="#" role="button">Download site ZIP</a>
           </div>
         </div>
       </section>
 
       <section class="layout">
         <aside class="sidebar" aria-label="模板分类">
-          <div class="sidebar-title">分类导航</div>
+          <div class="sidebar-title">Categories</div>
           <div id="category-list" class="category-list"></div>
         </aside>
 
@@ -52,13 +52,13 @@
           <div class="result-bar">
             <div>
               <strong id="result-count">0</strong>
-              <span>个模板</span>
+              <span>templates</span>
             </div>
-            <div id="active-filter" class="active-filter">全部分类</div>
+            <div id="active-filter" class="active-filter">All categories</div>
           </div>
           <div id="template-list" class="template-list"></div>
           <div id="empty-state" class="empty-state" hidden>
-            没有找到匹配的模板。可以换一个关键词，或点击“全部模板”。
+            No templates found. Try another keyword or select All templates.
           </div>
         </section>
       </section>

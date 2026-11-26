@@ -94,80 +94,6 @@ function initializeFooter() {
   element('#footer-records').append(link);
 }
 
-const SHELL_TEXT = {
-  en: {
-    nav: { index: 'Index', templates: 'Algorithm Templates', personal: 'Personal site ↗' },
-    footer: { index: 'Notes index', templates: 'Algorithm templates' },
-    parent: 'Back to parent',
-  },
-  'zh-cn': {
-    nav: { index: '目录', templates: 'Algorithm Templates', personal: '个人主页 ↗' },
-    footer: { index: '笔记目录', templates: '算法模板' },
-    parent: '返回上级',
-  },
-};
-
-function applyShellLocale(locale) {
-  const text = SHELL_TEXT[locale];
-  document.documentElement.lang = locale === 'zh-cn' ? 'zh-CN' : 'en';
-  document.querySelectorAll('[data-nav-i18n]').forEach((item) => {
-    item.textContent = text.nav[item.dataset.navI18n];
-  });
-  document.querySelectorAll('[data-footer-i18n]').forEach((item) => {
-    item.textContent = text.footer[item.dataset.footerI18n];
-  });
-  const parent = element('[data-notes-back]');
-  parent.title = text.parent;
-  parent.querySelector('.outline-parent-label').textContent = text.parent;
-  document.querySelectorAll('[data-language-current]').forEach((item) => {
-    item.textContent = locale === 'zh-cn' ? '简体中文' : 'English';
-  });
-  document.querySelectorAll('[data-language-link]').forEach((link) => {
-    link.toggleAttribute('aria-current', link.dataset.targetLocale === locale);
-    if (link.hasAttribute('aria-current')) link.setAttribute('aria-current', 'true');
-    link.href = window.location.pathname + window.location.search + window.location.hash;
-  });
-}
-
-function initializeSiteLinks() {
-  applyShellLocale(localStorage.getItem('site-locale') === 'zh-cn' ? 'zh-cn' : 'en');
-  document.querySelectorAll('[data-language-link]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      localStorage.setItem('site-locale', link.dataset.targetLocale);
-      applyShellLocale(link.dataset.targetLocale);
-    });
-  });
-}
-
-function initializeDropdowns() {
-  const dropdowns = Array.from(document.querySelectorAll('details[data-dropdown]'));
-  dropdowns.forEach((dropdown) => {
-    const summary = dropdown.querySelector('summary');
-    dropdown.addEventListener('toggle', () => {
-      summary.setAttribute('aria-expanded', String(dropdown.open));
-      if (dropdown.open) dropdowns.filter((other) => other !== dropdown)
-        .forEach((other) => { other.open = false; });
-    });
-  });
-  document.addEventListener('pointerdown', (event) => {
-    dropdowns.forEach((dropdown) => {
-      if (!dropdown.contains(event.target)) dropdown.open = false;
-    });
-  });
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element) || event.target.closest('summary')) return;
-    event.target.closest('details[data-dropdown]')?.removeAttribute('open');
-  });
-  document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    const dropdown = dropdowns.find((item) => item.open);
-    if (!dropdown) return;
-    dropdown.open = false;
-    dropdown.querySelector('summary').focus();
-  });
-}
-
 function noteSource() {
   const source = element('meta[name="note-source"]')?.content?.trim();
   const path = element('meta[name="note-path"]')?.content?.trim();
@@ -240,9 +166,9 @@ function parseMarkdown(markdown) {
 function languageLabel(lang) {
   return {
     en: 'Language: English',
-    'zh-cn': 'Language: 简体中文',
-    'zh-tw': 'Language: 繁體中文',
-    'zh-hk': 'Language: 繁體中文(香港)',
+    'zh-cn': 'Language: Simplified Chinese',
+    'zh-tw': 'Language: Traditional Chinese',
+    'zh-hk': 'Language: Traditional Chinese (Hong Kong)',
   }[lang] ?? 'Language: Other Language';
 }
 
@@ -289,7 +215,7 @@ function renderMetadata(note, path) {
   element('#note-title').textContent = note.title;
   element('#note-date').dateTime = new Date(note.date).toISOString();
   element('#note-date').textContent = new Intl.DateTimeFormat(
-    note.lang === 'zh-cn' ? 'zh-CN' : 'en',
+    'en',
     { dateStyle: 'long' },
   ).format(new Date(note.date));
   element('#note-language').textContent = languageLabel(note.lang);
@@ -509,8 +435,6 @@ function initializeTools() {
 
 async function main() {
   initializeFooter();
-  initializeSiteLinks();
-  initializeDropdowns();
   initializeTheme();
   const { source, path } = noteSource();
   const controller = new AbortController();

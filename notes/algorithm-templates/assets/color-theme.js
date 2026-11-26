@@ -9,7 +9,7 @@
     document.documentElement.style.colorScheme = value;
     document.querySelectorAll('.theme-toggle').forEach((button) => {
       const dark = value === 'dark';
-      const label = dark ? '切换到浅色主题' : '切换到深色主题';
+      const label = dark ? 'Switch to light theme' : 'Switch to dark theme';
       button.setAttribute('aria-label', label);
       button.title = label;
       button.querySelector('span').textContent = dark ? '☀' : '☾';

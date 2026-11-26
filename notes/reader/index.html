@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,19 +22,12 @@
       <nav class="navbar-container" aria-label="Notes navigation">
         <a class="site-brand" href="%SITE_BASE_PATH%"><img class="brand-mark" src="%SITE_BASE_PATH%notes-mark.svg" alt="" width="32" height="32" /><span>WeiKnight Notes</span></a>
         <div class="site-nav-links">
-          <a href="%SITE_BASE_PATH%" data-nav-i18n="index">Index</a>
-          <a href="%SITE_BASE_PATH%algorithm-templates/" data-nav-i18n="templates">Algorithm Templates</a>
+          <a href="%SITE_BASE_PATH%">Index</a>
+          <a href="%SITE_BASE_PATH%algorithm-templates/">Algorithm Templates</a>
         </div>
         <div class="site-nav-actions">
-          <a class="main-site-link" href="%MAIN_SITE_URL%" target="_blank" rel="noopener noreferrer" data-nav-i18n="personal">Personal site ↗</a>
+          <a class="main-site-link" href="%MAIN_SITE_URL%" target="_blank" rel="noopener noreferrer">Personal site ↗</a>
           <button type="button" data-theme-toggle class="nav-icon-button" aria-label="Switch color theme"><svg class="icon" aria-hidden="true"><use data-theme-icon href="%BASE_URL%icons.svg#moon"></use></svg></button>
-          <details class="language-control" data-dropdown>
-            <summary aria-label="Language" aria-expanded="false"><span data-language-current>English</span></summary>
-            <div class="language-menu">
-              <a href="%SITE_BASE_PATH%" data-language-link data-target-locale="en">English</a>
-              <a href="%SITE_BASE_PATH%" data-language-link data-target-locale="zh-cn">简体中文</a>
-            </div>
-          </details>
         </div>
       </nav>
     </header>
@@ -87,7 +80,7 @@
         <div class="footer-main">
           <p class="footer-owner">© <span id="footer-year"></span> WeiKnight Notes</p>
           <nav class="footer-links" aria-label="Notes links">
-            <a href="%SITE_BASE_PATH%" data-footer-i18n="index">Notes index</a>
+            <a href="%SITE_BASE_PATH%">Notes index</a>
           </nav>
         </div>
         <div class="footer-records" id="footer-records"></div>
