@@ -530,6 +530,7 @@ async function main() {
   element('.content-section').classList.toggle('wide-content', note.wide);
   element('#note-layout').classList.toggle('wide-content', note.wide);
   document.body.classList.toggle('directory-page', note.page === 'index');
+  document.body.classList.toggle('content-page', note.page === 'content');
   renderMetadata(note, path);
   element('#note-body').innerHTML = await renderMarkdown(path, note.body, SITE_BASE_PATH);
   if (note.page === 'index') {
