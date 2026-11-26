@@ -131,7 +131,38 @@ for (const [oldRoute, target] of Object.entries(redirects)) {
   await fs.mkdir(path.dirname(destination), { recursive: true });
   await fs.writeFile(destination, '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>笔记已迁移</title><link rel="canonical" href="' + escapeHtml(targetUrl) + '"><script>location.replace(' + JSON.stringify(targetUrl) + ')</script><p><a href="' + escapeHtml(targetUrl) + '">前往笔记</a></p></html>');
 }
-await fs.writeFile(path.join(output, '404.html'), '<!doctype html><html lang="en"><meta charset="utf-8"><title>Page not found | Notes</title><meta name="viewport" content="width=device-width,initial-scale=1"><main><h1>Page not found</h1><p><a href="' + escapeHtml(base) + '">Return to Notes</a></p></main></html>');
+await fs.writeFile(path.join(output, '404.html'), `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Page not found | WeiKnight Notes</title>
+  <style>
+    :root{color-scheme:light dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#24352d;background:#f4f5f1;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+    *{box-sizing:border-box}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;padding:1.5rem;background:radial-gradient(ellipse at 50% 0%,#e7eee7 0,transparent 52%),#f4f5f1}
+    main{width:min(100%,34rem);padding:clamp(2rem,7vw,4rem);border:1px solid #dce3dc;border-radius:1.5rem;background:rgba(255,255,255,.88);box-shadow:0 24px 70px rgba(35,55,43,.08)}
+    .brand{margin:0 0 3rem;font-size:.9rem;font-weight:650;letter-spacing:.01em;color:#43584b}
+    .code{margin:0;color:#9aab9e;font-size:clamp(5rem,18vw,8rem);font-weight:700;letter-spacing:-.09em;line-height:.85}
+    h1{margin:1.5rem 0 .6rem;font-size:clamp(1.65rem,5vw,2.2rem);letter-spacing:-.045em}
+    .message{max-width:27rem;margin:0;color:#66736a;font-size:1rem;line-height:1.75}
+    a{display:inline-flex;align-items:center;gap:.65rem;margin-top:2rem;padding:.8rem 1.1rem;border:1px solid #315b49;border-radius:999px;background:#315b49;color:#fff;font-size:.95rem;font-weight:650;text-decoration:none;transition:background .18s,border-color .18s,transform .18s}
+    a:hover{transform:translateY(-1px);border-color:#244735;background:#244735}
+    a:focus-visible{outline:3px solid #91ad98;outline-offset:3px}
+    @media(prefers-color-scheme:dark){:root{color:#e5ece6;background:#202622}body{background:radial-gradient(ellipse at 50% 0%,#303b33 0,transparent 52%),#202622}main{border-color:#3d4a40;background:rgba(39,47,41,.9);box-shadow:0 24px 70px rgba(0,0,0,.18)}.brand{color:#b5c7b9}.code{color:#607a68}.message{color:#b3beb5}a{border-color:#a4c5aa;background:#a4c5aa;color:#1d2921}a:hover{border-color:#bad5bf;background:#bad5bf}}
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">WeiKnight · Notes</p>
+    <p class="code" aria-hidden="true">404</p>
+    <h1>Page not found</h1>
+    <p class="message">This page may have moved, or the address may be incorrect.</p>
+    <a href="${escapeHtml(base)}"><span aria-hidden="true">←</span> Browse notes</a>
+  </main>
+</body>
+</html>`);
 await fs.writeFile(path.join(output, '.nojekyll'), '');
 await fs.writeFile(path.join(output, 'site-build.json'), `${JSON.stringify({ base, site: site.origin, mainSite: mainSiteUrl.href, notes: notes.length }, null, 2)}\n`);
 
