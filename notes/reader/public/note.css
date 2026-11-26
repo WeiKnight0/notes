@@ -2053,6 +2053,9 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
     .content-page .note-article {
         grid-column: 1;
         grid-row: 1;
+        width: 100%;
+        max-width: 900px;
+        margin-inline: auto;
     }
 
     .content-page .note-outline {
@@ -2198,10 +2201,6 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
     .content-page .outline-collapsed .outline-toggle,
     html[data-notes-outline="collapsed"] .content-page .outline-toggle {
         top: 0;
-    }
-
-    .content-page .chapter-content .note-body > :is(p, ul, ol) {
-        max-width: 46em;
     }
 
     @media (max-width: 1030px) {

@@ -2,7 +2,7 @@
 title: CS224N：逐页覆盖与整理进度
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 状态规则

@@ -117,11 +117,12 @@ export default {
           "route": "AI/vlm-finetuning-project"
         }
       ]
-    },
+    }
+  ],
+  "supplements": [
     {
       "id": "阅读路线",
       "title": "阅读路线",
-      "art": "neural",
       "html": "<ul>\n<li><strong>共同基础</strong>：机器学习理论 → 线性回归与分类 → 神经网络基础与训练机制；NumPy 与 PyTorch 可配合模型实现阅读。</li>\n<li><strong>语言模型</strong>：循环网络与序列建模 → Attention 与 Transformer → CS224N 各讲笔记。</li>\n<li><strong>多模态</strong>：卷积网络与视觉模型、Attention 与 Transformer → 学习范式中的对比学习 → CLIP 与图文对齐 → 图文融合与视觉语言模型；结合多模态任务与评价及项目实践。</li>\n<li><strong>强化学习</strong>：强化学习基础 → 多臂老虎机 → 价值估计与表格型控制 → DQN → 策略梯度与 Actor–Critic。</li>\n</ul>"
     }
   ]

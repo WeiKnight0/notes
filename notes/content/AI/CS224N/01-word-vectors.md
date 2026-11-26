@@ -2,7 +2,7 @@
 title: CS224N 第1讲：词向量入门（Introduction and Word Vectors）
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 词的数值表示

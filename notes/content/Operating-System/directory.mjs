@@ -73,8 +73,7 @@ export default {
           "title": "OS Memory List（English / 中文）",
           "route": "Operating-System/OS-Memory-List"
         }
-      ],
-      "html": "<p>All notes in Operating System:</p>"
+      ]
     }
   ]
 };

@@ -13,12 +13,6 @@ export default {
   ],
   "groups": [
     {
-      "id": "c-language-c语言",
-      "title": "C Language C语言",
-      "art": "code",
-      "html": "<p>本笔记以传统 C90 可编译写法为默认。</p>\n<blockquote>\n<p>C99、C11、C23 中新增的功能会单独标出。考试或编译环境没有明确允许时，不要默认使用。</p>\n</blockquote>"
-    },
-    {
       "id": "c语言核心",
       "title": "C语言核心",
       "art": "code",
@@ -71,12 +65,7 @@ export default {
           "route": "C-Language/10-ncre-public-basics"
         }
       ]
-    },
-    {
-      "id": "参考文献",
-      "title": "参考文献",
-      "art": "code",
-      "html": "<ul>\n<li>考试范围以<a href=\"https://ncre.neea.edu.cn/html1/report/2412/185-1.htm\">中国教育考试网：二级C语言程序设计考试大纲（2025年版）</a>为骨架。</li>\n<li>语言规则以<a href=\"https://www.open-std.org/jtc1/sc22/wg14/\">ISO/IEC JTC1/SC22/WG14</a>发布的 C 标准为准；查阅具体语法和标准库时可使用<a href=\"https://en.cppreference.com/w/c/\">C reference</a>。</li>\n<li>这不是 C++ 笔记：没有引用、类、函数重载、<code>new</code>/<code>delete</code>、<code>bool</code>、命名空间或 <code>std::string</code>。</li>\n</ul>"
     }
-  ]
+  ],
+  "introHtml": "<p>笔记默认采用 C90 写法；C99、C11、C23 新增功能会单独标明，使用时请确认编译环境与考试要求。</p>"
 };

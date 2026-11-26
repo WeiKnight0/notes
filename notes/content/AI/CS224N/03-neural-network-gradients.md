@@ -2,7 +2,7 @@
 title: CS224N 第3讲：神经网络梯度与反向传播
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 神经网络的结构与训练

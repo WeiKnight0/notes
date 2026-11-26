@@ -54,8 +54,18 @@ test('directories render aligned modules without duplicate numbering and retain 
   assert.ok(ai.includes('共同基础'));
   assert.ok(collect(ai, 'section', 'id').includes('机器学习基础'));
   const organization = renderDirectory(directoryPages.find((page) => page.route === 'Computer-Organization'), notes, '/notes/');
-  assert.ok(organization.includes('来源与许可'));
-  assert.ok(organization.includes('SOURCE-LICENSE.txt'));
+  assert.ok(organization.includes('许可说明'));
+  assert.ok(organization.includes('/notes/Computer-Organization/SOURCE-LICENSE.txt'));
+  assert.ok(!organization.includes('id="来源与许可"'));
+  assert.ok(organization.indexOf('catalog-page-note') > organization.lastIndexOf('catalog-module"'));
+  const c = renderDirectory(directoryPages.find((page) => page.route === 'C-Language'), notes, '/notes/');
+  assert.ok(c.includes('C90'));
+  assert.ok(c.indexOf('C90') < c.indexOf('Contents'));
+  assert.ok(!c.includes('参考文献'));
+  assert.ok(collect(ai, 'section', 'class').includes('catalog-supplement'));
+  for (const page of directoryPages.filter((page) => page.route)) {
+    assert.ok(page.groups.every((group) => group.entries?.length > 0), `${page.route} has a non-note module`);
+  }
 });
 
 test('directory renderer and configuration do not import Markdown processing', async () => {

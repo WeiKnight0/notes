@@ -2,7 +2,7 @@
 title: CS224N 第6讲：LSTM、双向循环网络与神经机器翻译
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 简单 RNN 的长期记忆问题

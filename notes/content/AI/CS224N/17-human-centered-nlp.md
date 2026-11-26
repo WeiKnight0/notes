@@ -2,7 +2,7 @@
 title: CS224N 第17讲：以人为中心的NLP
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 以人为中心的NLP

@@ -2,7 +2,7 @@
 title: CS224N 第18讲：NLP、语言学与哲学
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 神经NLP的核心思想

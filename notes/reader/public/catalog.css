@@ -8,10 +8,12 @@
 .catalog-main { width: min(100% - 4rem, 1160px); margin: 0 auto; flex: 1; padding: 3rem 0 5rem; }
 .catalog-page h1, .catalog-page h2, .catalog-page p { margin: 0; }
 .catalog-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .13em; color: rgb(var(--shell-muted)); line-height: 1.6; }
-.home-intro { padding: 1.5rem 0 3.5rem; max-width: 800px; }
-.home-intro h1 { font-size: clamp(2.8rem, 6vw, 4.6rem); letter-spacing: -.055em; line-height: 1.1; margin: 1rem 0 1.4rem; }
-.home-intro h1 span { display: inline-block; margin-left: 1.25rem; font-size: .48em; font-weight: 500; letter-spacing: .02em; color: rgb(var(--shell-muted)); }
-.home-intro > p:last-of-type { font-size: 1rem; line-height: 1.9; color: rgb(var(--shell-muted)); }
+.home-intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 2.5rem; padding: 1rem 0 2.5rem; margin-bottom: 1.5rem; }
+.home-intro-copy { min-width: 0; }
+.home-description { max-width: 30rem; color: rgb(var(--shell-muted)); font-size: .95rem; line-height: 1.95; }
+.home-intro .catalog-meta { margin-top: 1.5rem; }
+.home-cover { display: block; width: 100%; height: auto; }
+[data-theme="dark"] .home-cover { opacity: .85; }
 .catalog-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1.5rem; color: rgb(var(--shell-muted)); font-size: .84rem; }
 .catalog-meta > span { padding: .3rem .65rem; border: 1px solid rgb(var(--shell-border) / .2); border-radius: 999px; background: rgb(var(--shell-surface) / .65); line-height: 1.5; }
 .subject-intro .catalog-eyebrow { font-size: .82rem; }
@@ -48,7 +50,7 @@
 .subject-hero-art path { vector-effect: non-scaling-stroke; }
 .subject-card .subject-art path { vector-effect: non-scaling-stroke; }
 .catalog-main > header h1 { font-size: clamp(2.1rem, 4.5vw, 3.3rem); letter-spacing: -.045em; line-height: 1.2; margin: .8rem 0 1.1rem; }
-.catalog-main > header.home-intro h1 { font-size: clamp(2.8rem, 6vw, 4.6rem); }
+.catalog-main > header.home-intro h1 { max-width: 12ch; margin: 0 0 1.25rem; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.8rem, 4.5vw, 4rem); font-weight: 400; letter-spacing: -.035em; line-height: 1.15; text-wrap: balance; }
 .subject-card-copy .subject-description { margin-bottom: .25rem; }
 .subject-hero-art { min-width: 0; }
 .subject-card .subject-cover { --art-paper: rgb(var(--shell-surface)); }
@@ -76,14 +78,23 @@
 .catalog-prose ul, .catalog-prose ol { padding-left: 1.3rem; }
 .catalog-prose li { margin: .65rem 0; }
 .catalog-prose blockquote { padding-left: 1rem; margin: .8rem 0; border-left: 2px solid rgb(var(--shell-border) / .25); }
+.catalog-introduction { padding: 0 0 1.5rem; }
+.catalog-introduction p { margin: 0; }
+.catalog-supplement { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid rgb(var(--shell-border) / .2); scroll-margin-top: calc(var(--navbar-height) + 1rem); }
+.catalog-supplement h2 { font-size: 1.1rem; line-height: 1.55; }
+.catalog-supplement .catalog-prose { padding-bottom: 0; }
+.catalog-supplement ul { margin-bottom: 0; }
+.catalog-page-note { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgb(var(--shell-border) / .2); color: rgb(var(--shell-muted)); font-size: .8rem; line-height: 1.8; }
+.catalog-page-note a { color: rgb(var(--shell-accent)); text-underline-offset: .25em; }
 .catalog-page .footer { margin-top: 0; }
 @media (max-width: 760px) {
   .catalog-main { width: min(100% - 2rem, 580px); padding-top: 1.5rem; }
   .subject-grid { grid-template-columns: 1fr; gap: 1rem; }
   .catalog-main > header:not(.home-intro) { grid-template-columns: 1fr; gap: 1.5rem; padding-bottom: 2rem; }
   .subject-hero-art .subject-art { max-height: 220px; min-height: 0; }
-  .home-intro { padding: 1rem 0 2rem; }
-  .home-intro h1 span { display: block; margin: .7rem 0 0; }
+  .home-intro { grid-template-columns: 1fr; gap: 1rem; padding: .75rem 0 1.5rem; margin-bottom: 1rem; }
+  .catalog-main > header.home-intro h1 { max-width: none; font-size: clamp(2.7rem, 8vw, 3.5rem); }
+  .home-cover { max-width: 460px; justify-self: center; }
   .catalog-section-heading > span { font-size: .68rem; }
   .subject-card-copy { padding: 1.2rem; }
   .subject-cover .subject-art { max-height: 220px; }

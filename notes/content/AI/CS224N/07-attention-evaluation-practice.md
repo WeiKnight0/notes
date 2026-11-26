@@ -2,7 +2,7 @@
 title: CS224N 第7讲：Attention、翻译评估与研究实践
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 机器翻译的自动评估：BLEU

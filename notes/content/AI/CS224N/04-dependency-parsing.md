@@ -2,7 +2,7 @@
 title: CS224N 第4讲：依存句法分析（Dependency Parsing）
 date: 2026-11-16
 lang: zh-cn
-parent: AI/#cs224n
+parent: AI/
 ---
 
 ## 1. 句法结构与词间关系

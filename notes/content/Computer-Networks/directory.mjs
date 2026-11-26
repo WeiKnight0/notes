@@ -9,12 +9,6 @@ export default {
   "tags": [],
   "groups": [
     {
-      "id": "overview",
-      "title": "Overview",
-      "art": "network",
-      "html": "<p>按课程学习顺序组织。</p>"
-    },
-    {
       "id": "基础与分层",
       "title": "基础与分层",
       "art": "network",

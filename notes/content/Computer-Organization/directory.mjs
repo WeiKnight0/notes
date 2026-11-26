@@ -98,12 +98,7 @@ export default {
           "route": "Computer-Organization/15-io-control-and-dma"
         }
       ]
-    },
-    {
-      "id": "来源与许可",
-      "title": "来源与许可",
-      "art": "chip",
-      "html": "<p>本组笔记以 408 考试主线重新整理，并参考 <a href=\"https://github.com/Destinnnnn/Note/tree/672b98a\">Destinnnnn/Note（固定版本 672b98a）</a> 中的计算机组成原理笔记及其引用的湖南科技大学课程。选用的原图来自该仓库，许可见 <a href=\"{{base}}Computer-Organization/SOURCE-LICENSE.txt\">SOURCE-LICENSE.txt</a>。</p>"
     }
-  ]
+  ],
+  "footerHtml": "原图来源：<a href=\"https://github.com/Destinnnnn/Note/tree/672b98a\">Destinnnnn/Note（672b98a）</a> · <a href=\"{{base}}Computer-Organization/SOURCE-LICENSE.txt\">许可说明</a>"
 };
