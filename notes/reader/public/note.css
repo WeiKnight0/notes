@@ -2037,10 +2037,14 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
 
 
 @media screen {
+    .content-page {
+        --outline-width: 288px;
+    }
+
     .content-page .content-section {
-        width: calc(100% - 256px);
+        width: calc(100% - var(--outline-width));
         max-width: 1180px;
-        margin-left: max(256px, calc((100% + 256px - 1180px) / 2));
+        margin-left: max(var(--outline-width), calc((100% + var(--outline-width) - 1180px) / 2));
         margin-right: auto;
         padding: 2.5rem clamp(1.25rem, 3.4vw, 3.25rem) 3rem;
     }
@@ -2061,7 +2065,7 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
     .content-page .note-outline {
         position: fixed;
         inset: var(--navbar-height) auto 0 0;
-        width: 256px;
+        width: var(--outline-width);
         max-height: none;
         border: 0;
         border-right: 1px solid var(--reader-line);
@@ -2139,18 +2143,18 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
         transition: color 150ms ease, background-color 150ms ease;
     }
 
-    .content-page .outline-link[data-level="1"],
-    .content-page .outline-link[data-level="2"] {
+    .content-page .outline-link[data-level="1"] {
         margin-top: 0.375rem;
         color: rgb(var(--shell-text));
         font-weight: 650;
     }
 
     .content-page .outline-link:first-child { margin-top: 0.5rem; }
-    .content-page .outline-link[data-level="3"] { padding-left: 1.5rem; }
-    .content-page .outline-link[data-level="4"] { padding-left: 2.25rem; font-size: 0.8125rem; }
-    .content-page .outline-link[data-level="5"] { padding-left: 3rem; font-size: 0.8125rem; }
-    .content-page .outline-link[data-level="6"] { padding-left: 3.75rem; font-size: 0.8125rem; }
+    .content-page .outline-link[data-level="2"] { padding-left: 1.5rem; font-weight: 550; }
+    .content-page .outline-link[data-level="3"] { padding-left: 2.25rem; }
+    .content-page .outline-link[data-level="4"] { padding-left: 3rem; font-size: 0.8125rem; }
+    .content-page .outline-link[data-level="5"] { padding-left: 3.75rem; font-size: 0.8125rem; }
+    .content-page .outline-link[data-level="6"] { padding-left: 4.5rem; font-size: 0.8125rem; }
 
     .content-page .outline-link[data-level="3"]::before,
     .content-page .outline-link[data-level="4"]::before,
@@ -2158,7 +2162,7 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
     .content-page .outline-link[data-level="6"]::before {
         content: '';
         position: absolute;
-        left: 0.75rem;
+        left: 1.5rem;
         top: 0.8625rem;
         width: 4px;
         height: 4px;
@@ -2166,9 +2170,9 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
         background: rgb(var(--shell-border) / 0.25);
     }
 
-    .content-page .outline-link[data-level="4"]::before { left: 1.5rem; }
-    .content-page .outline-link[data-level="5"]::before { left: 2.25rem; }
-    .content-page .outline-link[data-level="6"]::before { left: 3rem; }
+    .content-page .outline-link[data-level="4"]::before { left: 2.25rem; }
+    .content-page .outline-link[data-level="5"]::before { left: 3rem; }
+    .content-page .outline-link[data-level="6"]::before { left: 3.75rem; }
 
     .content-page .outline-link:hover {
         background: rgb(var(--shell-border) / 0.05);
@@ -2274,10 +2278,11 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
     }
 
     @media (min-width: 841px) and (max-width: 1030px) {
+        .content-page { --outline-width: 272px; }
         .content-page .note-outline {
             position: fixed;
             inset: var(--navbar-height) auto 0 0;
-            width: 256px;
+            width: var(--outline-width);
             padding: 1.25rem 0.875rem;
             border-bottom: 0;
             border-right: 1px solid var(--reader-line);
