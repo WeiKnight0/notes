@@ -1982,8 +1982,8 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
         box-shadow: none;
         border: 1px solid var(--reader-line);
         border-radius: 9px;
-        font-size: 0.875rem;
-        line-height: 1.85;
+        font-size: 0.9375rem;
+        line-height: 1.7;
     }
 
     .content-page .chapter-content table :is(th, td):not(:has(pre)) {
@@ -2001,7 +2001,7 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
 
     .content-page .chapter-content :not(pre) > code {
         display: inline;
-        font-size: 0.85em;
+        font-size: 0.95em;
         padding: 0.15em 0.35em;
         border-radius: 4px;
         background: var(--light-bg);
@@ -2011,8 +2011,8 @@ html[data-notes-outline="collapsed"] .directory-page .note-outline {
     .content-page .chapter-content pre.astro-code {
         border-radius: 10px;
         box-shadow: none;
-        font-size: 0.8125rem;
-        line-height: 1.85;
+        font-size: 0.9375rem;
+        line-height: 1.7;
     }
 
     .content-page .chapter-content .note-solution {
